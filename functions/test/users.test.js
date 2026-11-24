@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkNewUser } from '../lib/users.js'
+import { checkNewUser, isListedOwner } from '../lib/users.js'
 
 const ok = { email: 'Dara@Grove.kh ', name: 'Dara', password: 'secret123', role: 'member', branchRoles: { b1: 'staff' } }
 
@@ -25,4 +25,11 @@ test('admins and owners get no branch list (they see all branches)', () => {
 
 test('rejects unknown branch roles', () => {
   assert.ok(checkNewUser({ ...ok, branchRoles: { b1: 'boss' } }, 'owner').error)
+})
+
+test('owner list check ignores case and rejects missing data', () => {
+  assert.equal(isListedOwner('Boss@Grove.kh', ['boss@grove.kh']), true)
+  assert.equal(isListedOwner('other@grove.kh', ['boss@grove.kh']), false)
+  assert.equal(isListedOwner('boss@grove.kh', undefined), false)
+  assert.equal(isListedOwner(undefined, ['boss@grove.kh']), false)
 })

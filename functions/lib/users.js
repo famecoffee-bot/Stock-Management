@@ -33,3 +33,10 @@ export function checkNewUser(data, actorRole) {
   }
   return { value: { email, password, name, role, branchRoles } }
 }
+
+/** Is this sign-in email on grove-system-kh's owner list? (case-insensitive) */
+export function isListedOwner(email, list) {
+  if (typeof email !== 'string' || !email || !Array.isArray(list)) return false
+  const e = email.trim().toLowerCase()
+  return list.some((x) => typeof x === 'string' && x.trim().toLowerCase() === e)
+}

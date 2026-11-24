@@ -17,6 +17,8 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// The stock app has its OWN database called "stock" inside the grove-mart project.
+// grove-system-kh's data lives in the "(default)" database, which this app never writes to.
+export const db = getFirestore(app, 'stock')
 // Same region as grove-system-kh's functions (Singapore, closest to Cambodia).
 export const functions = getFunctions(app, 'asia-southeast1')

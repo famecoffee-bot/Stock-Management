@@ -61,7 +61,7 @@ export function NoProfile() {
     if (s.status !== 'noProfile') return
     setBusy(true)
     try {
-      await claimOwner(s.user, name.trim())
+      await claimOwner(name.trim())
     } catch (err) {
       const m = friendlyError(err)
       setError(m.startsWith('You do not have permission') ? 'Only emails on the grove-system-kh owner list can do this.' : m)

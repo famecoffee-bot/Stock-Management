@@ -1,4 +1,10 @@
 {
+  "firestore": [
+    {
+      "database": "stock",
+      "rules": "firestore.rules"
+    }
+  ],
   "hosting": {
     "site": "grove-stock-kh",
     "public": "dist",

@@ -1,10 +1,10 @@
-    // =====================================================================================
-    // GROVE STOCK APP (inv_*) — added 2026-11. Paste this block INSIDE
-    //   match /databases/{database}/documents { ... }
-    // of grove-deploy/firestore.rules, just before its last two closing braces.
-    // It only matches collections starting with "inv_", so nothing of grove-system-kh changes.
-    // It reuses grove's isOwner() (grove_config/owners) for the very first owner profile.
-    // =====================================================================================
+rules_version = '2';
+
+// Security rules for the Grove stock app's OWN database ("stock") in the grove-mart project.
+// grove-system-kh uses the "(default)" database, whose rules are NOT in this repo and are never
+// deployed from here. Deploy these with: firebase deploy --only firestore:stock
+service cloud.firestore {
+  match /databases/{database}/documents {
 
     function invMe() {
       return get(/databases/$(database)/documents/inv_users/$(request.auth.uid)).data;
@@ -28,7 +28,7 @@
         || (invUser() && r != '' && rank[r] >= rank[need]);
     }
     function invUserDocOk(d) {
-      return d.keys().hasOnly(['name', 'email', 'role', 'branchRoles', 'active', 'createdAt', 'updatedAt', 'updatedBy'])
+      return d.keys().hasOnly(['name', 'email', 'role', 'branchRoles', 'active', 'createdByStock', 'createdAt', 'updatedAt', 'updatedBy'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.role in ['owner', 'admin', 'member']
         && d.branchRoles is map
@@ -65,15 +65,13 @@
     match /inv_users/{uid} {
       allow get: if request.auth != null && request.auth.uid == uid;
       allow read: if invAdmin();
-      // first owner: a grove-system-kh owner creates their OWN owner profile
-      allow create: if isOwner() && request.auth.uid == uid
-        && invUserDocOk(request.resource.data)
-        && request.resource.data.role == 'owner'
-        && request.resource.data.active == true;
+      // profiles are created only by Cloud Functions (invClaimOwner, invCreateUser)
+      allow create: if false;
       // admins edit others; only owners may touch an owner or hand out "owner"
       allow update: if invAdmin() && request.auth.uid != uid
         && invUserDocOk(request.resource.data)
         && request.resource.data.email == resource.data.email
+        && request.resource.data.get('createdByStock', false) == resource.data.get('createdByStock', false)
         && (invOwner() || (resource.data.role != 'owner' && request.resource.data.role != 'owner'));
       allow delete: if false;
       // new staff logins are created by the invCreateUser Cloud Function (Admin SDK)
@@ -88,3 +86,5 @@
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }
+  }
+}

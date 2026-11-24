@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
-import { auth, db } from './firebase'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
+import { auth, db, functions } from './firebase'
 import { COL } from './collections'
 import type { InvUser } from './types'
 
@@ -9,8 +10,8 @@ import type { InvUser } from './types'
 //  1. They sign in with email + password (Firebase Authentication, shared with grove-system-kh).
 //  2. We read inv_users/<uid>: that document says their role and branches.
 //  3. A grove-system-kh owner (listed in grove_config/owners) who has no inv_users
-//     document yet can claim an "owner" profile. The app cannot read that list itself;
-//     the Firestore rules check it when the profile is saved. Everyone else is added by an owner.
+//     document yet can claim an "owner" profile. The invClaimOwner Cloud Function only
+//     READS that list; it never changes grove-system-kh. Everyone else is added by an owner.
 
 type State =
   | { status: 'loading' }
@@ -63,17 +64,8 @@ export function useProfile(): InvUser {
 }
 
 /** First-time setup: a grove-system-kh owner creates their own owner profile. */
-export async function claimOwner(user: User, name: string) {
-  await setDoc(doc(db, COL.users, user.uid), {
-    name,
-    email: user.email ?? '',
-    role: 'owner',
-    branchRoles: {},
-    active: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    updatedBy: user.uid,
-  })
+export async function claimOwner(name: string) {
+  await httpsCallable(functions, 'invClaimOwner')({ name })
 }
 
 export const logout = () => signOut(auth)

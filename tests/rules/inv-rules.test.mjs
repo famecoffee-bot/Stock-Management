@@ -1,25 +1,11 @@
-// Tests for firestore/inv.rules, run against the Firestore emulator:
+// Tests for firestore.rules (the stock app's own "stock" database), run on the emulator:
 //   npm run test:rules
-// The rules are wrapped with a copy of grove-system-kh's isOwner() so they run
-// exactly as they will once pasted into grove's firestore.rules.
 import { after, before, beforeEach, test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 
-const inv = readFileSync(new URL('../../firestore/inv.rules', import.meta.url), 'utf8')
-const rules = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isOwner() {
-      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password'
-        && request.auth.token.email is string
-        && exists(/databases/$(database)/documents/grove_config/owners)
-        && request.auth.token.email.lower() in get(/databases/$(database)/documents/grove_config/owners).data.emails;
-    }
-${inv}
-  }
-}`
+const rules = readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8')
 
 let env
 const pw = (email) => ({ email, firebase: { sign_in_provider: 'password' } })
@@ -34,7 +20,6 @@ beforeEach(async () => {
   await env.clearFirestore()
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
-    await setDoc(doc(db, 'grove_config/owners'), { emails: ['boss@grove.kh'] })
     await setDoc(doc(db, 'inv_users/owner1'), user('owner'))
     await setDoc(doc(db, 'inv_users/admin1'), user('admin'))
     await setDoc(doc(db, 'inv_users/staff1'), user('member', { b1: 'staff' }))
@@ -46,11 +31,14 @@ beforeEach(async () => {
 
 const item = { name: 'Milk', baseUnit: 'ml', unitsPerPurchase: 1000, lastCostUsd: 1.5, active: true }
 
-test('a grove owner can claim their own owner profile, nobody else can', async () => {
+test('nobody can create a profile from the app (only Cloud Functions can)', async () => {
   const profile = { name: 'Boss', email: 'boss@grove.kh', role: 'owner', branchRoles: {}, active: true }
-  await assertSucceeds(setDoc(doc(as('boss', 'boss@grove.kh'), 'inv_users/boss'), profile))
-  await assertFails(setDoc(doc(as('rando', 'rando@x.kh'), 'inv_users/rando'), { ...profile, email: 'rando@x.kh' }))
-  await assertFails(setDoc(doc(as('boss', 'boss@grove.kh'), 'inv_users/someoneElse'), profile))
+  await assertFails(setDoc(doc(as('boss', 'boss@grove.kh'), 'inv_users/boss'), profile))
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_users/new1'), profile))
+})
+
+test('nobody can mark a login as made by the stock app', async () => {
+  await assertFails(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_users/admin1'), { createdByStock: true }))
 })
 
 test('only admins write items; everyone with a profile reads them', async () => {
