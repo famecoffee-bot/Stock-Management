@@ -1,0 +1,90 @@
+    // =====================================================================================
+    // GROVE STOCK APP (inv_*) — added 2026-11. Paste this block INSIDE
+    //   match /databases/{database}/documents { ... }
+    // of grove-deploy/firestore.rules, just before its last two closing braces.
+    // It only matches collections starting with "inv_", so nothing of grove-system-kh changes.
+    // It reuses grove's isOwner() (grove_config/owners) for the very first owner profile.
+    // =====================================================================================
+
+    function invMe() {
+      return get(/databases/$(database)/documents/inv_users/$(request.auth.uid)).data;
+    }
+    function invUser() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/inv_users/$(request.auth.uid))
+        && invMe().active == true;
+    }
+    function invAdmin() {
+      return invUser() && invMe().role in ['owner', 'admin'];
+    }
+    function invOwner() {
+      return invUser() && invMe().role == 'owner';
+    }
+    // At least `need` rights at one branch ('viewer' < 'staff' < 'manager'); admins always.
+    function invAtBranch(branchId, need) {
+      let r = invMe().branchRoles.get(branchId, '');
+      let rank = {'viewer': 1, 'staff': 2, 'manager': 3};
+      return invAdmin()
+        || (invUser() && r != '' && rank[r] >= rank[need]);
+    }
+    function invUserDocOk(d) {
+      return d.keys().hasOnly(['name', 'email', 'role', 'branchRoles', 'active', 'createdAt', 'updatedAt', 'updatedBy'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.role in ['owner', 'admin', 'member']
+        && d.branchRoles is map
+        && d.active is bool;
+    }
+
+    // ---- settings (exchange rate, categories): everyone reads, admins write
+    match /inv_settings/{id} {
+      allow read: if invUser();
+      allow write: if invAdmin();
+    }
+
+    // ---- branches and items: everyone reads, admins write; never deleted (history needs them)
+    match /inv_branches/{id} {
+      allow read: if invUser();
+      allow create, update: if invAdmin()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.code is string && request.resource.data.code.size() <= 8
+        && request.resource.data.active is bool;
+      allow delete: if false;
+    }
+    match /inv_items/{id} {
+      allow read: if invUser();
+      allow create, update: if invAdmin()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.baseUnit in ['g', 'ml', 'pcs']
+        && request.resource.data.unitsPerPurchase is number && request.resource.data.unitsPerPurchase > 0
+        && request.resource.data.lastCostUsd is number && request.resource.data.lastCostUsd >= 0
+        && request.resource.data.active is bool;
+      allow delete: if false;
+    }
+
+    // ---- users: a person reads their own profile; admins read all and edit (not owners, unless owner)
+    match /inv_users/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow read: if invAdmin();
+      // first owner: a grove-system-kh owner creates their OWN owner profile
+      allow create: if isOwner() && request.auth.uid == uid
+        && invUserDocOk(request.resource.data)
+        && request.resource.data.role == 'owner'
+        && request.resource.data.active == true;
+      // admins edit others; only owners may touch an owner or hand out "owner"
+      allow update: if invAdmin() && request.auth.uid != uid
+        && invUserDocOk(request.resource.data)
+        && request.resource.data.email == resource.data.email
+        && (invOwner() || (resource.data.role != 'owner' && request.resource.data.role != 'owner'));
+      allow delete: if false;
+      // new staff logins are created by the invCreateUser Cloud Function (Admin SDK)
+    }
+
+    // ---- stock numbers and the movement ledger: read by branch, written ONLY by Cloud Functions (phase 2+)
+    match /inv_stock/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+    match /inv_movements/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
