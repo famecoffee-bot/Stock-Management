@@ -15,14 +15,29 @@ import { auth, db } from './firebase'
 import { COL } from './collections'
 import { DEFAULT_SETTINGS, type Settings } from './types'
 
-/** Live list of a collection. Re-renders whenever the data changes in Firestore. */
-export function useCollection<T extends { id: string }>(name: string, ...constraints: QueryConstraint[]) {
+/**
+ * Live list of a collection. Re-renders whenever the data changes in Firestore.
+ * `key` must change whenever the constraints change (e.g. the branch id), so the
+ * listener is restarted. Pass `skip` to not listen at all (e.g. no branch chosen).
+ */
+export function useCollection<T extends { id: string }>(
+  name: string,
+  constraints: QueryConstraint[] = [],
+  key = '',
+  skip = false,
+) {
   const [rows, setRows] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const key = name + constraints.length
 
   useEffect(() => {
+    if (skip) {
+      setRows([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
     const q = query(collection(db, name), ...constraints)
     return onSnapshot(
       q,
@@ -36,7 +51,7 @@ export function useCollection<T extends { id: string }>(name: string, ...constra
       },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
+  }, [name, key, skip])
 
   return { rows, loading, error }
 }

@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    { "collectionGroup": "inv_movements", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "branchId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "inv_movements", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "branchId", "order": "ASCENDING" }, { "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "inv_movements", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "branchId", "order": "ASCENDING" }, { "fieldPath": "itemId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "inv_transfers", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "fromBranchId", "order": "ASCENDING" }, { "fieldPath": "sentAt", "order": "DESCENDING" } ] },
+    { "collectionGroup": "inv_transfers", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "toBranchId", "order": "ASCENDING" }, { "fieldPath": "sentAt", "order": "DESCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}

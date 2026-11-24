@@ -52,3 +52,75 @@ export const DEFAULT_SETTINGS: Settings = {
   usdToKhr: 4100,
   categories: ['Coffee', 'Dairy', 'Syrup & Sauce', 'Tea & Powder', 'Bakery', 'Packaging', 'Cleaning', 'Other'],
 }
+
+/** One item at one branch (id = branchId_itemId). Written only by Cloud Functions. */
+export interface StockLevel {
+  id: string
+  branchId: string
+  itemId: string
+  itemName: string
+  baseUnit: BaseUnit
+  qty: number
+  /** USD per base unit (weighted average). */
+  avgCostUsd: number
+  reorderPoint: number
+  parLevel: number
+}
+
+export type MovementType = 'receive' | 'waste' | 'adjust' | 'transfer_out' | 'transfer_in' | 'sale'
+
+/** One line of the stock history. Never edited. */
+export interface Movement {
+  id: string
+  branchId: string
+  itemId: string
+  itemName: string
+  baseUnit: BaseUnit
+  type: MovementType
+  qtyChange: number
+  qtyBefore: number
+  qtyAfter: number
+  unitCostUsd: number
+  valueUsd: number
+  reason: string | null
+  expiryDate: string | null
+  note: string | null
+  refType: string | null
+  refId: string | null
+  userName: string
+  createdAt?: { toDate(): Date }
+}
+
+export interface TransferLine {
+  itemId: string
+  itemName: string
+  baseUnit: BaseUnit
+  qty: number
+  unitCostUsd: number
+  receivedQty: number | null
+}
+
+export interface Transfer {
+  id: string
+  fromBranchId: string
+  fromName: string
+  toBranchId: string
+  toName: string
+  status: 'sent' | 'received' | 'cancelled'
+  short?: boolean
+  lines: TransferLine[]
+  note: string | null
+  sentByName: string
+  sentAt?: { toDate(): Date }
+  receivedByName?: string
+  receivedAt?: { toDate(): Date }
+}
+
+export const WASTE_REASONS: { value: string; label: string }[] = [
+  { value: 'expired', label: 'Expired' },
+  { value: 'spilled', label: 'Spilled' },
+  { value: 'damaged', label: 'Damaged' },
+  { value: 'staff_drink', label: 'Staff drink' },
+  { value: 'quality', label: 'Bad quality / remade' },
+  { value: 'other', label: 'Other' },
+]

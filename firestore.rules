@@ -77,13 +77,24 @@ service cloud.firestore {
       // new staff logins are created by the invCreateUser Cloud Function (Admin SDK)
     }
 
-    // ---- stock numbers and the movement ledger: read by branch, written ONLY by Cloud Functions (phase 2+)
+    // ---- stock numbers, the movement ledger and expiry batches: read by branch,
+    //      written ONLY by Cloud Functions (functions/stock-api.js)
     match /inv_stock/{id} {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }
     match /inv_movements/{id} {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+    match /inv_batches/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+    // ---- transfers: both branches can see them; changed only by Cloud Functions
+    match /inv_transfers/{id} {
+      allow read: if invUser()
+        && (invAtBranch(resource.data.fromBranchId, 'viewer') || invAtBranch(resource.data.toBranchId, 'viewer'));
       allow write: if false;
     }
   }

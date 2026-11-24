@@ -11,7 +11,7 @@ import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from
 export function Items() {
   const me = useProfile()
   const settings = useSettings()
-  const { rows, loading, error } = useCollection<Item>(COL.items, orderBy('name'))
+  const { rows, loading, error } = useCollection<Item>(COL.items, [orderBy('name')])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [showInactive, setShowInactive] = useState(false)

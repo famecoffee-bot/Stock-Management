@@ -20,5 +20,6 @@ How the code keeps that promise:
 - Quantities are in the item's base unit (g, ml, pcs). Money is in USD; KHR is shown with `inv_settings/main.usdToKhr`.
 - Grove sales (read-only, `(default)` db): `coffee_sales`, `mart_sales`, `restaurant_sales` (fields include
   `items`, `totalUsd`, `branch`, `branchIdx`, `createdAt` string). Grove also has `{shop}_supplyItems`, `_stockCounts`.
-- Tests: `npm test` (vitest + functions node:test), `npm run test:rules` (Firestore emulator).
+- Tests: `npm test` (vitest + functions node:test), `npm run test:rules` and `npm run test:int` (Firestore emulator).
+- Practice mode: `npm run emulators` + `npm run dev:local` (project `demo-grove-stock`, never the real one).
 - The owner is learning: explain changes in plain English, step by step.

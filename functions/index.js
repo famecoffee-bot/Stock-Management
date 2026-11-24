@@ -10,6 +10,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { setGlobalOptions } from 'firebase-functions/v2'
 import { checkNewUser, isListedOwner } from './lib/users.js'
+import { stockApi } from './stock-api.js'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 3 })
@@ -109,3 +110,6 @@ export const invSetPassword = onCall(async (req) => {
   await getAuth().updateUser(uid, { password })
   return { ok: true }
 })
+
+// ---- Phase 2: stock in / out, transfers, stock levels (stock-api.js)
+export const { invRecordMovement, invSendTransfer, invReceiveTransfer, invCancelTransfer, invSetStockLevels } = stockApi(db)

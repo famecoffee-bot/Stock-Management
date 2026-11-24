@@ -3,7 +3,7 @@
 import { after, before, beforeEach, test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 
 const rules = readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8')
 
@@ -26,6 +26,10 @@ beforeEach(async () => {
     await setDoc(doc(db, 'inv_users/gone1'), user('member', { b1: 'manager' }, false))
     await setDoc(doc(db, 'inv_stock/b1_milk'), { branchId: 'b1', itemId: 'milk', qty: 1000 })
     await setDoc(doc(db, 'inv_stock/b2_milk'), { branchId: 'b2', itemId: 'milk', qty: 500 })
+    await setDoc(doc(db, 'inv_movements/m1'), { branchId: 'b1', itemId: 'milk', type: 'receive', qtyChange: 1000 })
+    await setDoc(doc(db, 'inv_movements/m2'), { branchId: 'b2', itemId: 'milk', type: 'receive', qtyChange: 500 })
+    await setDoc(doc(db, 'inv_transfers/t1'), { fromBranchId: 'b2', toBranchId: 'b1', status: 'sent', lines: [] })
+    await setDoc(doc(db, 'inv_transfers/t2'), { fromBranchId: 'b2', toBranchId: 'b3', status: 'sent', lines: [] })
   })
 })
 
@@ -84,4 +88,26 @@ test('nobody can change their own role', async () => {
 test('staff cannot list all users', async () => {
   await assertSucceeds(getDoc(doc(as('staff1', 'member@x.kh'), 'inv_users/staff1')))
   await assertFails(getDoc(doc(as('staff1', 'member@x.kh'), 'inv_users/admin1')))
+})
+
+test('staff can list stock and history of their branch, not of others', async () => {
+  const db = as('staff1', 'member@x.kh')
+  await assertSucceeds(getDocs(query(collection(db, 'inv_stock'), where('branchId', '==', 'b1'))))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_movements'), where('branchId', '==', 'b1'))))
+  await assertFails(getDocs(query(collection(db, 'inv_movements'), where('branchId', '==', 'b2'))))
+  await assertFails(getDocs(collection(db, 'inv_movements')))
+  await assertSucceeds(getDocs(collection(as('admin1', 'admin@x.kh'), 'inv_movements')))
+})
+
+test('a branch sees transfers coming to it, but not transfers between other branches', async () => {
+  const db = as('staff1', 'member@x.kh')
+  await assertSucceeds(getDocs(query(collection(db, 'inv_transfers'), where('toBranchId', '==', 'b1'))))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_transfers'), where('fromBranchId', '==', 'b1'))))
+  await assertSucceeds(getDoc(doc(db, 'inv_transfers/t1')))
+  await assertFails(getDoc(doc(db, 'inv_transfers/t2')))
+  await assertFails(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_transfers/t1'), { status: 'received' }))
+})
+
+test('nobody writes movements from the app', async () => {
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_movements/fake'), { branchId: 'b1', qtyChange: 5 }))
 })
