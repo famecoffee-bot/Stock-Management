@@ -13,8 +13,8 @@ Plan and data model: see the project's plan doc. Build status:
 | Phase | What | Status |
 | --- | --- | --- |
 | 1 | Login, branches, items with units, users and branch roles | built |
-| 2 | Stock per branch, receive, waste, adjust, transfers, movement history | next |
-| 3 | Suppliers and purchase orders | |
+| 2 | Stock per branch, receive, waste, adjust, transfers, movement history | built |
+| 3 | Suppliers and purchase orders | next |
 | 4 | Recipes and auto deduction on sales | |
 | 5 | Stock counts, expiry, low-stock alerts | |
 | 6 | Reports and dashboard | |
@@ -30,6 +30,7 @@ src/
 functions/      Cloud Functions (codebase "stock": never touches grove's functions)
 firestore.rules security rules for the stock database only
 tests/rules/    tests for those rules (run on the Firestore emulator)
+functions/test-int/  stock ledger tests against the emulator (receive, waste, transfers)
 ```
 
 How grove-system-kh stays untouched:
@@ -46,7 +47,11 @@ npm install
 npm run dev          # opens http://localhost:5173
 npm test             # unit tests
 npm run test:rules   # security rule tests (needs Java)
+npm run test:int     # stock ledger tests on the emulator (needs Java)
 ```
+
+Practice without touching the real database: run `npm run emulators` in one window and
+`npm run dev:local` in another. Everything you do then lives only in a throwaway practice database.
 
 ## Going live (only with the owner's OK)
 

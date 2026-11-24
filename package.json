@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "test": "vitest run && npm --prefix functions test",
-    "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-grove-stock \"node --test tests/rules/*.test.mjs\""
+    "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-grove-stock \"node --test tests/rules/*.test.mjs\"",
+    "test:int": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-grove-stock \"node --test --test-concurrency=1 functions/test-int/*.test.js\"",
+    "emulators": "firebase emulators:start --config firebase.local.json --project demo-grove-stock",
+    "dev:local": "VITE_EMULATORS=1 vite"
   },
   "dependencies": {
     "firebase": "^13.4.0",

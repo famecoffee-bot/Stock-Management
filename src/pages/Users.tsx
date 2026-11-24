@@ -22,8 +22,8 @@ const BRANCH_ROLE_TEXT: Record<BranchRole, string> = {
 
 export function Users() {
   const me = useProfile()
-  const users = useCollection<InvUser>(COL.users, orderBy('name'))
-  const branches = useCollection<Branch>(COL.branches, orderBy('code'))
+  const users = useCollection<InvUser>(COL.users, [orderBy('name')])
+  const branches = useCollection<Branch>(COL.branches, [orderBy('code')])
   const [editing, setEditing] = useState<Partial<InvUser> | null>(null)
   const branchName = (id: string) => branches.rows.find((b) => b.id === id)?.code ?? '?'
 

@@ -9,7 +9,7 @@ import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from
 
 export function Branches() {
   const me = useProfile()
-  const { rows, loading, error } = useCollection<Branch>(COL.branches, orderBy('code'))
+  const { rows, loading, error } = useCollection<Branch>(COL.branches, [orderBy('code')])
   const [editing, setEditing] = useState<Partial<Branch> | null>(null)
   const visible = new Set(visibleBranchIds(me, rows.map((b) => b.id)))
   const list = rows.filter((b) => visible.has(b.id))

@@ -1,47 +1,92 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { limit, orderBy, where } from 'firebase/firestore'
 import { COL } from '../lib/collections'
-import { useCollection } from '../lib/data'
+import { useCollection, useSettings } from '../lib/data'
 import { useProfile } from '../lib/auth'
-import { visibleBranchIds } from '../lib/permissions'
-import type { Branch, Item } from '../lib/types'
-import { PageHeader } from '../components/ui'
+import { useBranch } from '../lib/branch'
+import { canAtBranch, isAdmin } from '../lib/permissions'
+import type { Item, StockLevel, Transfer } from '../lib/types'
+import { formatKhr, formatQty, formatUsd } from '../lib/units'
+import { Badge, PageHeader } from '../components/ui'
+import { stockRows } from './Stock'
 
 export function Dashboard() {
   const me = useProfile()
-  const branches = useCollection<Branch>(COL.branches)
-  const items = useCollection<Item>(COL.items)
-  const myBranches = visibleBranchIds(me, branches.rows.filter((b) => b.active).map((b) => b.id))
-  const activeItems = items.rows.filter((i) => i.active)
+  const settings = useSettings()
+  const { current, branches } = useBranch()
+  const id = current?.id ?? ''
+  const items = useCollection<Item>(COL.items, [orderBy('name')])
+  const levels = useCollection<StockLevel>(COL.stock, [where('branchId', '==', id)], id, !current)
+  const incoming = useCollection<Transfer>(COL.transfers, [where('toBranchId', '==', id), where('status', '==', 'sent'), limit(20)], `in${id}`, !current)
+
+  const rows = useMemo(() => stockRows(items.rows, levels.rows), [items.rows, levels.rows])
+  const low = rows.filter((r) => r.status !== 'ok')
+  const value = rows.reduce((s, r) => s + r.valueUsd, 0)
+  const canWork = !!current && canAtBranch(me, current.id, 'staff')
 
   const steps = [
-    { done: branches.rows.length > 0, text: 'Add your branches', to: '/branches' },
-    { done: activeItems.length > 0, text: 'Add the items you keep in stock', to: '/items' },
-    { done: false, text: 'Add your staff and give them branches', to: '/users' },
+    { done: branches.length > 0, text: 'Add your branches', to: '/branches' },
+    { done: items.rows.some((i) => i.active), text: 'Add the items you keep in stock', to: '/items' },
+    { done: levels.rows.length > 0, text: 'Receive your first stock', to: '/stock/receive' },
   ]
+  const setupDone = steps.every((s) => s.done)
 
   return (
     <>
-      <PageHeader title={`Hello, ${me.name}`} subtitle="Here is your stock at a glance." />
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <Stat label="Branches" value={myBranches.length} />
-        <Stat label="Items in use" value={activeItems.length} />
-        <Stat label="Low stock alerts" value="—" note="Coming in phase 5" />
-      </div>
-      <div className="card">
-        <h2 className="mb-2 font-semibold text-bean-900">Getting started</h2>
-        <ol className="space-y-2">
-          {steps.map((s, i) => (
-            <li key={s.text} className="flex items-center gap-2 text-sm">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${s.done ? 'bg-green-600 text-white' : 'bg-stone-200'}`}>
-                {s.done ? '✓' : i + 1}
-              </span>
-              <Link to={s.to} className="hover:underline">
-                {s.text}
-              </Link>
-            </li>
-          ))}
-        </ol>
-      </div>
+      <PageHeader title={`Hello, ${me.name}`} subtitle={current ? `${current.name} at a glance` : 'Welcome to Grove Stock'} />
+      {current && (
+        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+          <Stat label="Stock value" value={formatUsd(value)} note={formatKhr(value, settings.usdToKhr)} />
+          <Stat label="Low or out" value={low.length} note={low.length ? 'Needs ordering' : 'All good'} />
+          <Stat label="Transfers to confirm" value={incoming.rows.length} />
+        </div>
+      )}
+      {canWork && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          <Link to="/stock/receive" className="btn">Receive stock</Link>
+          <Link to="/stock/waste" className="btn-ghost">Record waste</Link>
+          <Link to="/transfers" className="btn-ghost">Transfers</Link>
+        </div>
+      )}
+      {low.length > 0 && (
+        <div className="card mb-5">
+          <h2 className="mb-2 font-semibold text-bean-900">Low or out of stock</h2>
+          <ul className="divide-y divide-stone-100">
+            {low.slice(0, 10).map((r) => (
+              <li key={r.item.id} className="flex items-center justify-between py-2 text-sm">
+                <span>{r.item.name}</span>
+                <span className="flex items-center gap-2">
+                  {formatQty(r.qty, r.item.baseUnit)}
+                  {r.status === 'out' ? <Badge tone="red">Out</Badge> : <Badge tone="amber">Low</Badge>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {low.length > 10 && (
+            <Link to="/stock" className="mt-2 block text-sm text-bean-700 hover:underline">
+              See all {low.length}
+            </Link>
+          )}
+        </div>
+      )}
+      {!setupDone && isAdmin(me) && (
+        <div className="card">
+          <h2 className="mb-2 font-semibold text-bean-900">Getting started</h2>
+          <ol className="space-y-2">
+            {steps.map((s, i) => (
+              <li key={s.text} className="flex items-center gap-2 text-sm">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${s.done ? 'bg-green-600 text-white' : 'bg-stone-200'}`}>
+                  {s.done ? '✓' : i + 1}
+                </span>
+                <Link to={s.to} className="hover:underline">
+                  {s.text}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </>
   )
 }
