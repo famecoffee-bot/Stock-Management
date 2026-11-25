@@ -87,10 +87,6 @@ service cloud.firestore {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }
-    match /inv_batches/{id} {
-      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
-      allow write: if false;
-    }
     // ---- transfers: both branches can see them; changed only by Cloud Functions
     match /inv_transfers/{id} {
       allow read: if invUser()
@@ -135,6 +131,16 @@ service cloud.firestore {
     // ---- sales: read by branch; written ONLY by Cloud Functions (functions/sales-api.js),
     //      because recording one takes ingredients out of stock.
     match /inv_sales/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+
+    // ---- Phase 5: counts, and expiry lots (made when perishable stock is received). Written only by Cloud Functions.
+    match /inv_counts/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+    match /inv_batches/{id} {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }

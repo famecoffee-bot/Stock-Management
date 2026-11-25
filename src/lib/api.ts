@@ -99,3 +99,25 @@ export const recordSales = call<{ ok: true; id: string; negative: string[] }>('i
 }) => Promise<{ ok: true; id: string; negative: string[] }>
 
 export const voidSale = call<{ ok: true }>('invVoidSale') as (d: { id: string; reason: string }) => Promise<{ ok: true }>
+
+// ---- Phase 5: stock counts (functions/counts-api.js)
+
+export const startCount = call<{ ok: true; id: string }>('invStartCount') as (d: {
+  branchId: string
+  /** Count one category only; leave out to count every active item. */
+  category?: string
+  note?: string
+}) => Promise<{ ok: true; id: string }>
+
+export const saveCount = call<{ ok: true; counted: number; total: number }>('invSaveCount') as (d: {
+  id: string
+  /** itemId -> counted in base units, or null to clear. */
+  counted: Record<string, number | null>
+  submit?: boolean
+}) => Promise<{ ok: true; counted: number; total: number }>
+
+export const approveCount = call<{ ok: true; counted: number; differences: number; lossUsd: number; gainUsd: number; netUsd: number }>(
+  'invApproveCount',
+) as (d: { id: string }) => Promise<{ ok: true; counted: number; differences: number; lossUsd: number; gainUsd: number; netUsd: number }>
+
+export const cancelCount = call<{ ok: true }>('invCancelCount') as (d: { id: string }) => Promise<{ ok: true }>

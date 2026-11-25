@@ -1,7 +1,7 @@
 // The stock maths, kept free of Firebase so it can be tested on its own
 // (functions/test/stock.test.js). Every quantity is in the item's base unit.
 
-export const MOVEMENT_TYPES = ['receive', 'waste', 'adjust', 'transfer_out', 'transfer_in', 'sale', 'sale_void']
+export const MOVEMENT_TYPES = ['receive', 'waste', 'adjust', 'transfer_out', 'transfer_in', 'sale', 'sale_void', 'count']
 export const WASTE_REASONS = ['expired', 'spilled', 'damaged', 'staff_drink', 'quality', 'other']
 
 /** Who may record which kind of movement at a branch. */
@@ -105,5 +105,5 @@ export function checkLines(type, raw) {
 
 /** Signed change for a movement type: waste and transfers out remove stock. */
 export function signedQty(type, qty) {
-  return type === 'waste' || type === 'transfer_out' || type === 'sale' ? -Math.abs(qty) : type === 'adjust' ? qty : Math.abs(qty)
+  return type === 'waste' || type === 'transfer_out' || type === 'sale' ? -Math.abs(qty) : type === 'adjust' || type === 'count' ? qty : Math.abs(qty)
 }

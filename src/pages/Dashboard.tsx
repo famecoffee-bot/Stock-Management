@@ -11,6 +11,8 @@ import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Badge, PageHeader } from '../components/ui'
 import { stockRows } from './Stock'
 import { useOpenOrders } from './PurchaseOrders'
+import { LEVEL_TEXT, useExpiry } from './Expiry'
+import { useCounts } from './Counts'
 
 export function Dashboard() {
   const me = useProfile()
@@ -22,10 +24,22 @@ export function Dashboard() {
   const incoming = useCollection<Transfer>(COL.transfers, [where('toBranchId', '==', id), where('status', '==', 'sent'), limit(20)], `in${id}`, !current)
 
   const openOrders = useOpenOrders(current?.id)
+  const expiry = useExpiry(current?.id)
+  const counts = useCounts(current?.id, 10)
   const rows = useMemo(() => stockRows(items.rows, levels.rows), [items.rows, levels.rows])
   const low = rows.filter((r) => r.status !== 'ok')
   const value = rows.reduce((s, r) => s + r.valueUsd, 0)
   const canWork = !!current && canAtBranch(me, current.id, 'staff')
+  const isManager = !!current && canAtBranch(me, current.id, 'manager')
+
+  // Phase 5 alerts: worked out live from stock, lots and counts, so they are never out of date.
+  const useSoon = expiry.rows.filter((r) => r.level !== 'ok')
+  const negative = rows.filter((r) => r.qty < 0)
+  const waiting = counts.rows.filter((c) => c.status === 'submitted')
+  const lastCount = counts.rows.find((c) => c.status === 'approved')
+  const daysSinceCount = lastCount?.approvedAt ? Math.floor((Date.now() - lastCount.approvedAt.toDate().getTime()) / 86400000) : null
+  const countDue = levels.rows.length > 0 && (daysSinceCount === null || daysSinceCount > 30)
+  const attention = useSoon.length + negative.length + (isManager ? waiting.length : 0) + (countDue ? 1 : 0)
 
   const steps = [
     { done: branches.length > 0, text: 'Add your branches', to: '/branches' },
@@ -38,9 +52,10 @@ export function Dashboard() {
     <>
       <PageHeader title={`Hello, ${me.name}`} subtitle={current ? `${current.name} at a glance` : 'Welcome to Grove Stock'} />
       {current && (
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Stat label="Stock value" value={formatUsd(value)} note={formatKhr(value, settings.usdToKhr)} />
           <Stat label="Low or out" value={low.length} note={low.length ? 'Needs ordering' : 'All good'} />
+          <Stat label="Use soon" value={useSoon.length} note={useSoon.length ? 'Expired or expiring in 3 days' : 'Nothing expiring'} />
           <Stat label="Transfers to confirm" value={incoming.rows.length} />
           <Stat label="Orders on the way" value={openOrders.rows.length} note="Receive them on the Receive page" />
         </div>
@@ -50,8 +65,50 @@ export function Dashboard() {
           <Link to="/stock/receive" className="btn">Receive stock</Link>
           <Link to="/sales" className="btn-ghost">Enter sales</Link>
           <Link to="/stock/waste" className="btn-ghost">Record waste</Link>
+          <Link to="/counts" className="btn-ghost">Count stock</Link>
           <Link to="/transfers" className="btn-ghost">Transfers</Link>
           <Link to="/purchase-orders" className="btn-ghost">Purchase orders</Link>
+        </div>
+      )}
+      {current && attention > 0 && (
+        <div className="card mb-5">
+          <h2 className="mb-2 font-semibold text-bean-900">Needs attention</h2>
+          <ul className="divide-y divide-stone-100 text-sm">
+            {isManager &&
+              waiting.map((c) => (
+                <li key={c.id} className="flex items-center justify-between py-2">
+                  <span>Stock count by {c.submittedByName} is waiting for your approval</span>
+                  <Link to={`/counts/${c.id}`} className="text-bean-700 hover:underline">Review</Link>
+                </li>
+              ))}
+            {useSoon.slice(0, 6).map((r) => (
+              <li key={r.batch.id} className="flex items-center justify-between py-2">
+                <span>
+                  {r.item.name} <span className="text-stone-400">· {formatQty(r.qtyLeft, r.item.baseUnit)}</span>
+                </span>
+                <Badge tone={LEVEL_TEXT[r.level].tone}>{LEVEL_TEXT[r.level].label(r.daysLeft)}</Badge>
+              </li>
+            ))}
+            {useSoon.length > 6 && (
+              <li className="py-2">
+                <Link to="/expiry" className="text-bean-700 hover:underline">See all {useSoon.length} on the Expiry page</Link>
+              </li>
+            )}
+            {negative.length > 0 && (
+              <li className="flex items-center justify-between gap-2 py-2">
+                <span>
+                  Below zero: {negative.map((r) => r.item.name).join(', ')}. Stock was used that the app never saw arrive.
+                </span>
+                <Link to="/counts" className="shrink-0 text-bean-700 hover:underline">Count them</Link>
+              </li>
+            )}
+            {countDue && (
+              <li className="flex items-center justify-between py-2">
+                <span>{daysSinceCount === null ? 'No stock count yet at this branch.' : `Last stock count was ${daysSinceCount} days ago.`} Count at least once a month.</span>
+                <Link to="/counts" className="shrink-0 text-bean-700 hover:underline">Start a count</Link>
+              </li>
+            )}
+          </ul>
         </div>
       )}
       {low.length > 0 && (

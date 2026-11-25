@@ -16,6 +16,8 @@ import { History } from './pages/History'
 import { Suppliers } from './pages/Suppliers'
 import { Products } from './pages/Products'
 import { Sales } from './pages/Sales'
+import { CountSheet, Counts } from './pages/Counts'
+import { Expiry } from './pages/Expiry'
 import { PurchaseOrderEdit, PurchaseOrderView, PurchaseOrders } from './pages/PurchaseOrders'
 
 function Gate() {
@@ -45,6 +47,9 @@ function Gate() {
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="menu" element={<Products />} />
         <Route path="sales" element={<Sales />} />
+        <Route path="counts" element={<Counts />} />
+        <Route path="counts/:id" element={<CountSheet />} />
+        <Route path="expiry" element={<Expiry />} />
         <Route path="purchase-orders" element={<PurchaseOrders />} />
         <Route path="purchase-orders/new" element={<PurchaseOrderEdit />} />
         <Route path="purchase-orders/:id" element={<PurchaseOrderView />} />
