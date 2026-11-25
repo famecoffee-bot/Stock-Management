@@ -12,6 +12,7 @@ import { setGlobalOptions } from 'firebase-functions/v2'
 import { checkNewUser, isListedOwner } from './lib/users.js'
 import { stockApi } from './stock-api.js'
 import { purchasingApi } from './purchasing-api.js'
+import { salesApi } from './sales-api.js'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 3 })
@@ -117,3 +118,6 @@ export const { invRecordMovement, invSendTransfer, invReceiveTransfer, invCancel
 
 // ---- Phase 3: purchase orders (purchasing-api.js). Suppliers are plain documents (rules check them).
 export const { invSavePurchaseOrder, invPurchaseOrderAction, invReceivePurchaseOrder } = purchasingApi(db)
+
+// ---- Phase 4: sales take ingredients out of stock by recipe (sales-api.js). Products and recipes are plain documents.
+export const { invRecordSales, invVoidSale } = salesApi(db)

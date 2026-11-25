@@ -48,6 +48,7 @@ export function Dashboard() {
       {canWork && (
         <div className="mb-5 flex flex-wrap gap-2">
           <Link to="/stock/receive" className="btn">Receive stock</Link>
+          <Link to="/sales" className="btn-ghost">Enter sales</Link>
           <Link to="/stock/waste" className="btn-ghost">Record waste</Link>
           <Link to="/transfers" className="btn-ghost">Transfers</Link>
           <Link to="/purchase-orders" className="btn-ghost">Purchase orders</Link>
