@@ -13,6 +13,7 @@ const NAV = [
   { to: '/purchase-orders', label: 'Orders', admin: false },
   { to: '/transfers', label: 'Transfers', admin: false },
   { to: '/history', label: 'History', admin: false },
+  { to: '/reports', label: 'Reports', admin: false },
   { to: '/items', label: 'Items', admin: false },
   { to: '/menu', label: 'Menu', admin: false },
   { to: '/suppliers', label: 'Suppliers', admin: false },

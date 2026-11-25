@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { costPerBase, formatKhr, formatQty, toBase } from './units'
+import { costPerBase, formatKhr, formatQty, formatUsd, toBase } from './units'
 
 describe('units', () => {
   test('shows big gram and ml amounts as kg and L', () => {
@@ -23,4 +23,9 @@ describe('units', () => {
   test('riel is rounded to 100', () => {
     expect(formatKhr(1.5, 4100)).toBe('6,200 ៛')
   })
+})
+
+test('dollars have thousands separators', () => {
+  expect(formatUsd(1208.5)).toBe('$1,208.50')
+  expect(formatUsd(0.7)).toBe('$0.70')
 })

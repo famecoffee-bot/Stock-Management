@@ -30,7 +30,8 @@ export function costPerBase(lastCostUsd: number, unitsPerPurchase: number): numb
 }
 
 export function formatUsd(v: number): string {
-  return `$${v.toFixed(2)}`
+  // 1208.5 -> "$1,208.50"
+  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 /** Riel, rounded to the nearest 100 like cash in Cambodia. */

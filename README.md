@@ -17,8 +17,8 @@ Plan and data model: see the project's plan doc. Build status:
 | 3 | Suppliers and purchase orders, receiving against an order | built |
 | 4 | Menu with recipes per size, sales entry or CSV import, auto deduction, cancelling a sale | built |
 | 5 | Stock counts with variance, expiry (use oldest first), low-stock and expiry alerts | built |
-| 6 | Reports and dashboard | next |
-| 7 | Link sales from grove-system-kh | |
+| 6 | Reports: sales, cost of ingredients, waste, count differences, purchases, stock value, Excel download | built |
+| 7 | Link sales from grove-system-kh | next |
 
 ## How the code is organised
 
