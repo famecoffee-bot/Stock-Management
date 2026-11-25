@@ -7,16 +7,17 @@ import { useBranch } from '../lib/branch'
 import { WASTE_REASONS, type Item, type Movement, type MovementType } from '../lib/types'
 import { formatQty, formatUsd } from '../lib/units'
 import { Badge, Empty, ErrorNote, PageHeader } from '../components/ui'
+import { dateLocale, t } from '../lib/i18n'
 
 const TYPE_TEXT: Record<MovementType, { label: string; tone: 'green' | 'red' | 'amber' | 'stone' }> = {
-  receive: { label: 'Received', tone: 'green' },
-  transfer_in: { label: 'Transfer in', tone: 'green' },
-  transfer_out: { label: 'Transfer out', tone: 'amber' },
-  waste: { label: 'Waste', tone: 'red' },
-  adjust: { label: 'Adjust', tone: 'stone' },
-  sale: { label: 'Sale', tone: 'stone' },
-  sale_void: { label: 'Sale cancelled', tone: 'amber' },
-  count: { label: 'Stock count', tone: 'stone' },
+  receive: { label: t('Received'), tone: 'green' },
+  transfer_in: { label: t('Transfer in'), tone: 'green' },
+  transfer_out: { label: t('Transfer out'), tone: 'amber' },
+  waste: { label: t('Waste'), tone: 'red' },
+  adjust: { label: t('Adjust'), tone: 'stone' },
+  sale: { label: t('Sale'), tone: 'stone' },
+  sale_void: { label: t('Sale cancelled'), tone: 'amber' },
+  count: { label: t('Stock count'), tone: 'stone' },
 }
 const reasonText = (r: string | null) => WASTE_REASONS.find((w) => w.value === r)?.label ?? r ?? ''
 const PAGE = 200
@@ -46,15 +47,15 @@ export function History() {
     setParams(p, { replace: true })
   }
 
-  if (!current) return <Empty>Choose a branch first.</Empty>
+  if (!current) return <Empty>{t('Choose a branch first.')}</Empty>
 
   return (
     <>
-      <PageHeader title={`History · ${current.name}`} subtitle="Every change to stock, newest first. Nothing here can be edited or deleted." />
+      <PageHeader title={t('History · {name}', { name: current.name })} subtitle={t('Every change to stock, newest first. Nothing here can be edited or deleted.')} />
       <ErrorNote message={moves.error} />
       <div className="mb-3 flex flex-wrap gap-2">
         <select className="input max-w-[12rem]" value={type} onChange={(e) => set('type', e.target.value)}>
-          <option value="">All kinds</option>
+          <option value="">{t('All kinds')}</option>
           {Object.entries(TYPE_TEXT).map(([k, v]) => (
             <option key={k} value={k}>
               {v.label}
@@ -62,7 +63,7 @@ export function History() {
           ))}
         </select>
         <select className="input max-w-[14rem]" value={itemId} onChange={(e) => set('item', e.target.value)}>
-          <option value="">All items</option>
+          <option value="">{t('All items')}</option>
           {items.rows.map((i) => (
             <option key={i.id} value={i.id}>
               {i.name}
@@ -71,26 +72,26 @@ export function History() {
         </select>
       </div>
       {!moves.loading && list.length === 0 ? (
-        <Empty>No changes yet.</Empty>
+        <Empty>{t('No changes yet.')}</Empty>
       ) : (
         <div className="card overflow-x-auto p-0">
           <table className="w-full min-w-[680px]">
             <thead className="bg-stone-50">
               <tr>
-                <th className="th">When</th>
-                <th className="th">Item</th>
-                <th className="th">Kind</th>
-                <th className="th text-right">Change</th>
-                <th className="th text-right">After</th>
-                <th className="th text-right">Value</th>
-                <th className="th">By · why</th>
+                <th className="th">{t('When')}</th>
+                <th className="th">{t('Item')}</th>
+                <th className="th">{t('Kind')}</th>
+                <th className="th text-right">{t('Change')}</th>
+                <th className="th text-right">{t('After')}</th>
+                <th className="th text-right">{t('Value')}</th>
+                <th className="th">{t('By · why')}</th>
               </tr>
             </thead>
             <tbody>
               {list.map((m) => (
                 <tr key={m.id}>
                   <td className="td whitespace-nowrap text-xs text-stone-500">
-                    {m.createdAt?.toDate().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) ?? '…'}
+                    {m.createdAt?.toDate().toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' }) ?? '…'}
                   </td>
                   <td className="td">{m.itemName}</td>
                   <td className="td">
@@ -106,7 +107,7 @@ export function History() {
                     {m.userName}
                     {(m.reason || m.note || m.expiryDate) && (
                       <div className="text-stone-400">
-                        {[reasonText(m.reason), m.note, m.expiryDate && `expires ${m.expiryDate}`].filter(Boolean).join(' · ')}
+                        {[reasonText(m.reason), m.note, m.expiryDate && t('expires {date}', { date: m.expiryDate })].filter(Boolean).join(' · ')}
                       </div>
                     )}
                   </td>
@@ -118,7 +119,7 @@ export function History() {
       )}
       {moves.rows.length >= size && (
         <button className="btn-ghost mt-3 w-full" onClick={() => setSize((s) => s + PAGE)}>
-          Show older
+          {t('Show older')}
         </button>
       )}
     </>

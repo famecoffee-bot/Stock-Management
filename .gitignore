@@ -28,3 +28,7 @@ dist-ssr
 firebase-debug*.log
 functions/node_modules
 .env
+
+# Service account keys must never be committed
+*-key.json
+service-account*.json

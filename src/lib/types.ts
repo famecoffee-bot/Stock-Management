@@ -1,4 +1,5 @@
 import type { BaseUnit } from './units'
+import { t } from './i18n'
 
 export type Role = 'owner' | 'admin' | 'member'
 export type BranchRole = 'manager' | 'staff' | 'viewer'
@@ -117,12 +118,12 @@ export interface Transfer {
 }
 
 export const WASTE_REASONS: { value: string; label: string }[] = [
-  { value: 'expired', label: 'Expired' },
-  { value: 'spilled', label: 'Spilled' },
-  { value: 'damaged', label: 'Damaged' },
-  { value: 'staff_drink', label: 'Staff drink' },
-  { value: 'quality', label: 'Bad quality / remade' },
-  { value: 'other', label: 'Other' },
+  { value: 'expired', label: t('Expired') },
+  { value: 'spilled', label: t('Spilled') },
+  { value: 'damaged', label: t('Damaged') },
+  { value: 'staff_drink', label: t('Staff drink') },
+  { value: 'quality', label: t('Bad quality / remade') },
+  { value: 'other', label: t('Other') },
 ]
 
 // ---- Phase 3: suppliers and purchase orders
@@ -192,11 +193,11 @@ export interface PurchaseOrder {
 }
 
 export const PO_STATUS_LABEL: Record<PoStatus, string> = {
-  draft: 'Draft',
-  sent: 'Sent, waiting',
-  partial: 'Part received',
-  received: 'Received',
-  cancelled: 'Cancelled',
+  draft: t('Draft'),
+  sent: t('Sent, waiting'),
+  partial: t('Part received'),
+  received: t('Received'),
+  cancelled: t('Cancelled'),
 }
 
 // ---- Phase 4: menu products, recipes and sales

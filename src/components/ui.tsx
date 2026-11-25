@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { t, tMessage } from '../lib/i18n'
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
@@ -23,7 +24,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-bean-900">{title}</h2>
-          <button className="text-2xl leading-none text-stone-400 hover:text-stone-700" onClick={onClose} aria-label="Close">
+          <button className="text-2xl leading-none text-stone-400 hover:text-stone-700" onClick={onClose} aria-label={t('Close')}>
             ×
           </button>
         </div>
@@ -66,10 +67,10 @@ export function Badge({ children, tone = 'stone' }: { children: ReactNode; tone?
 export function friendlyError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e)
   if (msg.includes('permission-denied') || msg.includes('insufficient permissions'))
-    return 'You do not have permission to do this. Ask an owner to check your role.'
+    return t('You do not have permission to do this. Ask an owner to check your role.')
   if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password'))
-    return 'Email or password is not correct.'
-  if (msg.includes('auth/too-many-requests')) return 'Too many tries. Wait a few minutes and try again.'
-  if (msg.includes('unavailable') || msg.includes('network')) return 'No internet connection. Try again.'
-  return msg
+    return t('Email or password is not correct.')
+  if (msg.includes('auth/too-many-requests')) return t('Too many tries. Wait a few minutes and try again.')
+  if (msg.includes('unavailable') || msg.includes('network')) return t('No internet connection. Try again.')
+  return tMessage(msg)
 }

@@ -12,6 +12,19 @@ body {
   @apply bg-bean-50 text-stone-800 antialiased;
 }
 
+/* Khmer: a clear Khmer font, a little more line height for the stacked letters,
+   and no letter spacing or capitals (they break Khmer words apart). */
+html:lang(km) body {
+  font-family: 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS', system-ui, sans-serif;
+  line-height: 1.65;
+}
+html:lang(km) .label,
+html:lang(km) .th,
+html:lang(km) .tracking-wide {
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-1 rounded-lg bg-bean-700 px-3 py-2 text-sm font-medium text-white hover:bg-bean-900 disabled:opacity-50;

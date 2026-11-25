@@ -53,6 +53,10 @@ npm run test:int     # stock ledger tests on the emulator (needs Java)
 Practice without touching the real database: run `npm run emulators` in one window and
 `npm run dev:local` in another. Everything you do then lives only in a throwaway practice database.
 
+## Test version
+
+See [TRIAL.md](TRIAL.md) to launch a separate test copy with practice data.
+
 ## Going live (only with the owner's OK)
 
 Each step only ADDS something new to the grove-mart project:

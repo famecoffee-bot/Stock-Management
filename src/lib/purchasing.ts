@@ -1,5 +1,6 @@
 import type { Item, PoLine, PoStatus, PurchaseOrder, StockLevel } from './types'
 import { formatKhr, formatQty, formatUsd } from './units'
+import { t } from './i18n'
 
 // Purchase-order helpers for the screens. The server (functions/lib/purchasing.js)
 // checks everything again; these only make the screens quick and friendly.
@@ -60,15 +61,15 @@ export function orderText(po: PurchaseOrder, usdToKhr: number): string {
     (l, i) => `${i + 1}. ${l.itemName}: ${l.packs} × ${l.purchaseUnit} @ ${formatUsd(l.packCostUsd)} = ${formatUsd(l.packs * l.packCostUsd)}`,
   )
   return [
-    `Grove Coffee · Order ${po.number}`,
-    `Deliver to: ${po.branchName}`,
-    po.expectedDate ? `Needed by: ${po.expectedDate}` : null,
+    t('Grove Coffee · Order {number}', { number: po.number }),
+    t('Deliver to: {branch}', { branch: po.branchName }),
+    po.expectedDate ? t('Needed by: {date}', { date: po.expectedDate }) : null,
     '',
     ...lines,
     '',
-    `Total: ${formatUsd(po.totalUsd)} (${formatKhr(po.totalUsd, usdToKhr)})`,
-    po.note ? `Note: ${po.note}` : null,
-    'Thank you!',
+    t('Total: {usd} ({khr})', { usd: formatUsd(po.totalUsd), khr: formatKhr(po.totalUsd, usdToKhr) }),
+    po.note ? t('Note: {note}', { note: po.note }) : null,
+    t('Thank you!'),
   ]
     .filter((x) => x !== null)
     .join('\n')

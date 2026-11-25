@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { saveSettings, useSettings } from '../lib/data'
 import { ErrorNote, Field, PageHeader, friendlyError } from '../components/ui'
+import { t } from '../lib/i18n'
 
 export function Settings() {
   const current = useSettings()
@@ -18,11 +19,11 @@ export function Settings() {
     e.preventDefault()
     setError(null)
     const r = Number(rate)
-    if (!(r > 0)) return setError('Exchange rate must be more than 0.')
+    if (!(r > 0)) return setError(t('Exchange rate must be more than 0.'))
     const categories = [...new Set(cats.split('\n').map((c) => c.trim()).filter(Boolean))]
     try {
       await saveSettings({ usdToKhr: r, categories })
-      setMsg('Saved.')
+      setMsg(t('Saved.'))
     } catch (err) {
       setError(friendlyError(err))
     }
@@ -30,17 +31,17 @@ export function Settings() {
 
   return (
     <>
-      <PageHeader title="Settings" />
+      <PageHeader title={t('Settings')} />
       <form onSubmit={submit} className="card max-w-md space-y-4">
         <ErrorNote message={error} />
         {msg && <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{msg}</div>}
-        <Field label="1 USD = ? riel" hint="Costs are saved in USD and shown in riel with this rate, like grove-system-kh.">
+        <Field label={t('1 USD = ? riel')} hint={t('Costs are saved in USD and shown in riel with this rate, like grove-system-kh.')}>
           <input className="input" type="number" min="1" value={rate} onChange={(e) => setRate(e.target.value)} />
         </Field>
-        <Field label="Item categories (one per line)">
+        <Field label={t('Item categories (one per line)')}>
           <textarea className="input min-h-40" value={cats} onChange={(e) => setCats(e.target.value)} />
         </Field>
-        <button className="btn">Save settings</button>
+        <button className="btn">{t('Save settings')}</button>
       </form>
     </>
   )

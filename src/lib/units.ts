@@ -1,12 +1,13 @@
+import { t } from './i18n'
 // Quantities are always stored in a small "base unit" (g, ml or pcs) so the
 // maths never mixes kilograms with grams. These helpers convert for display.
 
 export type BaseUnit = 'g' | 'ml' | 'pcs'
 
 export const BASE_UNITS: { value: BaseUnit; label: string }[] = [
-  { value: 'g', label: 'grams (g)' },
-  { value: 'ml', label: 'millilitres (ml)' },
-  { value: 'pcs', label: 'pieces (pcs)' },
+  { value: 'g', label: t('grams (g)') },
+  { value: 'ml', label: t('millilitres (ml)') },
+  { value: 'pcs', label: t('pieces (pcs)') },
 ]
 
 /** Show a base-unit quantity in a friendly way: 2500 g -> "2.5 kg". */

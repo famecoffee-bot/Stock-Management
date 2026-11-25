@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../lib/firebase'
+import { auth, isTrial } from '../lib/firebase'
 import { claimOwner, logout, useAuth } from '../lib/auth'
 import { ErrorNote, Field, friendlyError } from '../components/ui'
+import { LanguageSwitch, t } from '../lib/i18n'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -27,10 +28,10 @@ export function Login() {
     <Centered>
       <form onSubmit={submit} className="space-y-4">
         <ErrorNote message={error} />
-        <Field label="Email">
+        <Field label={t('Email')}>
           <input className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
-        <Field label="Password">
+        <Field label={t('Password')}>
           <input
             className="input"
             type="password"
@@ -41,8 +42,13 @@ export function Login() {
           />
         </Field>
         <button className="btn w-full" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? t('Signing in…') : t('Sign in')}
         </button>
+        {isTrial && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {t('Test version. Practice logins (password')}{' '}<b>{t('practice123')}</b>{t('): owner@grove.kh (owner), vanna@grove.kh (manager, Riverside), dara@grove.kh (staff, Riverside).')}
+          </p>
+        )}
       </form>
     </Centered>
   )
@@ -64,7 +70,7 @@ export function NoProfile() {
       await claimOwner(name.trim())
     } catch (err) {
       const m = friendlyError(err)
-      setError(m.startsWith('You do not have permission') ? 'Only emails on the grove-system-kh owner list can do this.' : m)
+      setError(m.startsWith('You do not have permission') ? t('Only emails on the grove-system-kh owner list can do this.') : m)
       setBusy(false)
     }
   }
@@ -72,21 +78,20 @@ export function NoProfile() {
   return (
     <Centered>
       <p className="mb-4 text-sm text-stone-600">
-        You are signed in as <b>{s.user.email}</b>, but you do not have access to the stock app yet. Staff: ask an owner
-        to add you.
+        {t('You are signed in as')}{' '}<b>{s.user.email}</b>{t(', but you do not have access to the stock app yet. Staff: ask an owner to add you.')}
       </p>
       <form onSubmit={claim} className="space-y-3 rounded-lg bg-bean-50 p-3">
-        <p className="text-sm text-stone-600">Owner of grove-system-kh? Set up your owner profile:</p>
+        <p className="text-sm text-stone-600">{t('Owner of grove-system-kh? Set up your owner profile:')}</p>
         <ErrorNote message={error} />
-        <Field label="Your name">
+        <Field label={t('Your name')}>
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
         <button className="btn w-full" disabled={busy}>
-          Create owner profile
+          {t('Create owner profile')}
         </button>
       </form>
       <button className="btn-ghost mt-4 w-full" onClick={logout}>
-        Sign out
+        {t('Sign out')}
       </button>
     </Centered>
   )
@@ -96,8 +101,11 @@ function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="card w-full max-w-sm">
-        <h1 className="mb-1 text-xl font-semibold text-bean-900">Grove Stock</h1>
-        <p className="mb-5 text-sm text-stone-500">Stock management for Grove Coffee</p>
+        <div className="mb-3 flex justify-end">
+          <LanguageSwitch />
+        </div>
+        <h1 className="mb-1 text-xl font-semibold text-bean-900">{t('Grove Stock')}</h1>
+        <p className="mb-5 text-sm text-stone-500">{t('Stock management for Grove Coffee')}</p>
         {children}
       </div>
     </div>

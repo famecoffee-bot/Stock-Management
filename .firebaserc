@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "grove-mart"
+    "default": "grove-mart",
+    "trial": "grove-stock-test"
   }
 }
