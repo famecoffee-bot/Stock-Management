@@ -12,7 +12,10 @@
     "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-grove-stock \"node --test tests/rules/*.test.mjs\"",
     "test:int": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-grove-stock \"node --test --test-concurrency=1 functions/test-int/*.test.js\"",
     "emulators": "firebase emulators:start --config firebase.local.json --project demo-grove-stock",
-    "dev:local": "VITE_EMULATORS=1 vite"
+    "dev:local": "VITE_EMULATORS=1 vite",
+    "build:trial": "tsc -b && vite build --mode trial",
+    "deploy:trial": "npm run build:trial && firebase deploy --config firebase.trial.json --project trial --only hosting,functions:stock,firestore:stock",
+    "trial:data": "node scripts/load-practice-data.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

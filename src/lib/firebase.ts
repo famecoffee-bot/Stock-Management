@@ -6,7 +6,7 @@ import { connectFunctionsEmulator, getFunctions } from 'firebase/functions'
 // The same Firebase project as grove-system-kh (grove-mart). These web keys are
 // public by design (grove-system-kh already serves them); the Firestore rules
 // are what protect the data.
-const firebaseConfig = {
+const groveMartConfig = {
   apiKey: 'AIzaSyB0N57v9Jnk71dFRSwWguDAFwDAHqGOew8',
   authDomain: 'grove-mart.firebaseapp.com',
   projectId: 'grove-mart',
@@ -14,6 +14,13 @@ const firebaseConfig = {
   messagingSenderId: '132089396918',
   appId: '1:132089396918:web:bc57346520d23bb7c6b017',
 }
+
+// Test version ("staging"): `npm run build:trial` reads .env.trial, which points the app
+// at a separate test project full of practice data. grove-mart is never touched then.
+export const isTrial = import.meta.env.VITE_TRIAL === '1'
+const trialConfig = import.meta.env.VITE_FIREBASE_CONFIG
+const firebaseConfig = trialConfig ? JSON.parse(trialConfig) : groveMartConfig
+if (isTrial && firebaseConfig.projectId === 'grove-mart') throw new Error('The test version must not use grove-mart.')
 
 const local = import.meta.env.VITE_EMULATORS === '1'
 // In practice mode we use a made-up "demo-" project, so nothing can ever reach the real grove-mart.

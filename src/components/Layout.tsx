@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { logout, useProfile } from '../lib/auth'
 import { isAdmin } from '../lib/permissions'
 import { useBranch } from '../lib/branch'
+import { isTrial } from '../lib/firebase'
 
 const NAV = [
   { to: '/', label: 'Dashboard', admin: false },
@@ -29,6 +30,11 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
+      {isTrial && (
+        <div className="bg-amber-400 px-4 py-1 text-center text-xs font-semibold text-amber-950">
+          TEST VERSION · practice data only · not connected to grove-system-kh
+        </div>
+      )}
       <header className="bg-bean-900 text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
