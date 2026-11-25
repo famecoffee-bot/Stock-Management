@@ -1,7 +1,7 @@
 // The stock maths, kept free of Firebase so it can be tested on its own
 // (functions/test/stock.test.js). Every quantity is in the item's base unit.
 
-export const MOVEMENT_TYPES = ['receive', 'waste', 'adjust', 'transfer_out', 'transfer_in', 'sale']
+export const MOVEMENT_TYPES = ['receive', 'waste', 'adjust', 'transfer_out', 'transfer_in', 'sale', 'sale_void']
 export const WASTE_REASONS = ['expired', 'spilled', 'damaged', 'staff_drink', 'quality', 'other']
 
 /** Who may record which kind of movement at a branch. */
@@ -40,7 +40,9 @@ export function applyChange(current, qtyChange, unitCostUsd, opts = {}) {
   const qtyBefore = current?.qty ?? 0
   const oldAvg = current?.avgCostUsd ?? 0
   const qtyAfter = round(qtyBefore + qtyChange)
-  if (qtyAfter < 0 && !opts.allowNegative) {
+  // Only taking stock OUT can be refused. Putting stock back (a delivery, a
+  // cancelled sale) is always allowed, even if the count is still below zero.
+  if (qtyChange < 0 && qtyAfter < 0 && !opts.allowNegative) {
     return { error: `Not enough stock: only ${round(qtyBefore, 2)} left.` }
   }
 

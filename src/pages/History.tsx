@@ -15,6 +15,7 @@ const TYPE_TEXT: Record<MovementType, { label: string; tone: 'green' | 'red' | '
   waste: { label: 'Waste', tone: 'red' },
   adjust: { label: 'Adjust', tone: 'stone' },
   sale: { label: 'Sale', tone: 'stone' },
+  sale_void: { label: 'Sale cancelled', tone: 'amber' },
 }
 const reasonText = (r: string | null) => WASTE_REASONS.find((w) => w.value === r)?.label ?? r ?? ''
 const PAGE = 200

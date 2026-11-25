@@ -118,6 +118,26 @@ service cloud.firestore {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }
+    // ---- Phase 4: menu products with their recipes. Everyone reads; admins write; never deleted.
+    //      The rules check the shape; the sales function checks every recipe line again before using it.
+    function invProductOk(d) {
+      return d.keys().hasOnly(['name', 'category', 'groveName', 'sizes', 'recipes', 'active', 'createdAt', 'updatedAt', 'updatedBy'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.sizes is list && d.sizes.size() >= 1 && d.sizes.size() <= 6
+        && d.recipes is map
+        && d.active is bool;
+    }
+    match /inv_products/{id} {
+      allow read: if invUser();
+      allow create, update: if invAdmin() && invProductOk(request.resource.data);
+      allow delete: if false;
+    }
+    // ---- sales: read by branch; written ONLY by Cloud Functions (functions/sales-api.js),
+    //      because recording one takes ingredients out of stock.
+    match /inv_sales/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
     // ---- running numbers (PO-0001, ...): only Cloud Functions touch these
     match /inv_counters/{id} {
       allow read, write: if false;

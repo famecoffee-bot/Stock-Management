@@ -67,7 +67,7 @@ export interface StockLevel {
   parLevel: number
 }
 
-export type MovementType = 'receive' | 'waste' | 'adjust' | 'transfer_out' | 'transfer_in' | 'sale'
+export type MovementType = 'receive' | 'waste' | 'adjust' | 'transfer_out' | 'transfer_in' | 'sale' | 'sale_void'
 
 /** One line of the stock history. Never edited. */
 export interface Movement {
@@ -198,3 +198,70 @@ export const PO_STATUS_LABEL: Record<PoStatus, string> = {
   received: 'Received',
   cancelled: 'Cancelled',
 }
+
+// ---- Phase 4: menu products, recipes and sales
+
+export interface ProductSize {
+  /** Short code used in recipes and imports: "S", "M", "L", or "one" for single-size products. */
+  key: string
+  label: string
+  /** Selling price in USD (optional, used for cost % and margin). */
+  priceUsd: number | null
+}
+
+/** One ingredient in one cup, in the item's base unit. */
+export interface RecipeLine {
+  itemId: string
+  qty: number
+}
+
+export interface Product {
+  id: string
+  name: string
+  category: string
+  /** The name as written in grove-system-kh sales, if different (used to match imports, and in phase 7). */
+  groveName: string
+  sizes: ProductSize[]
+  /** sizeKey -> ingredients for ONE cup of that size. */
+  recipes: Record<string, RecipeLine[]>
+  active: boolean
+}
+
+export interface SaleLine {
+  productId: string
+  productName: string
+  sizeKey: string
+  sizeLabel: string
+  qty: number
+  priceUsd: number | null
+  costUsd: number
+}
+
+export interface SaleUsage {
+  itemId: string
+  itemName: string
+  baseUnit: BaseUnit
+  qty: number
+  qtyAfter: number
+  valueUsd: number
+}
+
+export interface Sale {
+  id: string
+  branchId: string
+  date: string
+  source: 'manual' | 'import' | 'grove'
+  note: string | null
+  lines: SaleLine[]
+  usage: SaleUsage[]
+  cups: number
+  costUsd: number
+  salesUsd: number | null
+  status: 'done' | 'void'
+  voidReason?: string
+  voidedByName?: string
+  createdByName: string
+  createdAt?: { toDate(): Date }
+}
+
+export const PRODUCT_CATEGORIES = ['Coffee', 'Tea', 'Frappe', 'Juice & Soda', 'Food', 'Other']

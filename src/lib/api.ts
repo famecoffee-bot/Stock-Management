@@ -78,3 +78,24 @@ export const receivePurchaseOrder = call<{ ok: true; status: string }>('invRecei
   note?: string
   lines: { itemId: string; packs: number; packCostUsd?: number; expiryDate?: string }[]
 }) => Promise<{ ok: true; status: string }>
+
+// ---- Phase 4: sales (functions/sales-api.js)
+
+export interface SaleInputLine {
+  productId: string
+  sizeKey: string
+  qty: number
+}
+
+export const recordSales = call<{ ok: true; id: string; negative: string[] }>('invRecordSales') as (d: {
+  branchId: string
+  /** YYYY-MM-DD: the day these sales happened. */
+  date: string
+  source?: 'manual' | 'import'
+  /** For imports: the same key twice is refused, so a file can't be imported twice. */
+  key?: string
+  note?: string
+  lines: SaleInputLine[]
+}) => Promise<{ ok: true; id: string; negative: string[] }>
+
+export const voidSale = call<{ ok: true }>('invVoidSale') as (d: { id: string; reason: string }) => Promise<{ ok: true }>

@@ -34,10 +34,14 @@ beforeEach(async () => {
     await setDoc(doc(db, 'inv_purchase_orders/po1'), { branchId: 'b1', status: 'sent', lines: [], number: 'PO-0001' })
     await setDoc(doc(db, 'inv_purchase_orders/po2'), { branchId: 'b2', status: 'sent', lines: [], number: 'PO-0002' })
     await setDoc(doc(db, 'inv_counters/purchaseOrders'), { next: 3 })
+    await setDoc(doc(db, 'inv_products/latte'), product)
+    await setDoc(doc(db, 'inv_sales/s1'), { branchId: 'b1', date: '2026-11-24', status: 'done', lines: [], usage: [] })
+    await setDoc(doc(db, 'inv_sales/s2'), { branchId: 'b2', date: '2026-11-24', status: 'done', lines: [], usage: [] })
   })
 })
 
 const supplier = { name: 'Bean Co', contactName: '', phone: '012', telegram: '', email: '', address: '', paymentTerms: 'COD', leadTimeDays: 1, itemIds: ['milk'], note: '', active: true }
+const product = { name: 'Iced Latte', category: 'Coffee', groveName: '', sizes: [{ key: 'L', label: 'Large', priceUsd: 2.5 }], recipes: { L: [{ itemId: 'milk', qty: 220 }] }, active: true }
 const item = { name: 'Milk', baseUnit: 'ml', unitsPerPurchase: 1000, lastCostUsd: 1.5, active: true }
 
 test('nobody can create a profile from the app (only Cloud Functions can)', async () => {
@@ -150,4 +154,33 @@ test('purchase orders: a branch reads its own, never another branch; nobody writ
 test('the order number counter is hidden from the app', async () => {
   await assertFails(getDoc(doc(as('owner1', 'owner@x.kh'), 'inv_counters/purchaseOrders')))
   await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_counters/purchaseOrders'), { next: 1 }))
+})
+
+// ---- Phase 4: menu products, recipes and sales
+
+test('only admins edit the menu and recipes; everyone with a profile reads it; nobody deletes', async () => {
+  await assertSucceeds(setDoc(doc(as('admin1', 'admin@x.kh'), 'inv_products/mocha'), product))
+  await assertSucceeds(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_products/latte'), { recipes: { L: [{ itemId: 'milk', qty: 200 }] } }))
+  await assertFails(updateDoc(doc(as('staff1', 'member@x.kh'), 'inv_products/latte'), { recipes: {} }))
+  await assertSucceeds(getDoc(doc(as('staff1', 'member@x.kh'), 'inv_products/latte')))
+  await assertFails(getDoc(doc(as('nobody', 'nobody@x.kh'), 'inv_products/latte')))
+  await assertFails(deleteDoc(doc(as('owner1', 'owner@x.kh'), 'inv_products/latte')))
+})
+
+test('products need a name and at least one size; no extra fields', async () => {
+  const db = as('owner1', 'owner@x.kh')
+  await assertFails(setDoc(doc(db, 'inv_products/a'), { ...product, name: '' }))
+  await assertFails(setDoc(doc(db, 'inv_products/b'), { ...product, sizes: [] }))
+  await assertFails(setDoc(doc(db, 'inv_products/c'), { ...product, recipes: 'milk' }))
+  await assertFails(setDoc(doc(db, 'inv_products/d'), { ...product, price: 3 }))
+})
+
+test('sales: a branch reads its own; nobody writes them from the app (only Cloud Functions)', async () => {
+  const db = as('staff1', 'member@x.kh')
+  await assertSucceeds(getDoc(doc(db, 'inv_sales/s1')))
+  await assertFails(getDoc(doc(db, 'inv_sales/s2')))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_sales'), where('branchId', '==', 'b1'))))
+  await assertFails(getDocs(collection(db, 'inv_sales')))
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_sales/fake'), { branchId: 'b1', lines: [] }))
+  await assertFails(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_sales/s1'), { status: 'void' }))
 })

@@ -68,3 +68,9 @@ test('branch permissions', () => {
   assert.equal(canAt({ active: true, role: 'admin' }, 'b2', 'manager'), true)
   assert.equal(canAt({ active: false, role: 'owner' }, 'b1', 'viewer'), false)
 })
+
+test('putting stock back is allowed even when the count is below zero', () => {
+  const r = applyChange({ qty: -2300, avgCostUsd: 0.0016 }, 1000, 0.0016)
+  assert.equal(r.qtyAfter, -1300)
+  assert.match(applyChange({ qty: -2300, avgCostUsd: 0.0016 }, -1).error, /Not enough/)
+})
