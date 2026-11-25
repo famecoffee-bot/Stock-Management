@@ -88,3 +88,31 @@ export async function saveDoc(name: string, id: string | undefined, data: Record
 export async function saveSettings(data: Settings) {
   await setDoc(doc(db, COL.settings, 'main'), { ...data, ...stamp() })
 }
+
+/** Live single document (null while loading or if it does not exist / cannot be read). */
+export function useDocument<T extends { id: string }>(name: string, id: string | undefined) {
+  const [row, setRow] = useState<T | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!id) {
+      setRow(null)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    return onSnapshot(
+      doc(db, name, id),
+      (snap) => {
+        setRow(snap.exists() ? ({ id: snap.id, ...(snap.data() as DocumentData) } as T) : null)
+        setError(null)
+        setLoading(false)
+      },
+      (err) => {
+        setError(err.message)
+        setLoading(false)
+      },
+    )
+  }, [name, id])
+  return { row, loading, error }
+}

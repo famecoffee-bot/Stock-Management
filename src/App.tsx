@@ -13,6 +13,8 @@ import { StockPage } from './pages/Stock'
 import { StockChange } from './pages/StockChange'
 import { Transfers } from './pages/Transfers'
 import { History } from './pages/History'
+import { Suppliers } from './pages/Suppliers'
+import { PurchaseOrderEdit, PurchaseOrderView, PurchaseOrders } from './pages/PurchaseOrders'
 
 function Gate() {
   const s = useAuth()
@@ -38,6 +40,11 @@ function Gate() {
         <Route path="stock/adjust" element={<StockChange key="adjust" type="adjust" />} />
         <Route path="transfers" element={<Transfers />} />
         <Route path="history" element={<History />} />
+        <Route path="suppliers" element={<Suppliers />} />
+        <Route path="purchase-orders" element={<PurchaseOrders />} />
+        <Route path="purchase-orders/new" element={<PurchaseOrderEdit />} />
+        <Route path="purchase-orders/:id" element={<PurchaseOrderView />} />
+        <Route path="purchase-orders/:id/edit" element={<PurchaseOrderEdit />} />
         <Route path="items" element={<Items />} />
         <Route path="branches" element={<Branches />} />
         {admin && <Route path="users" element={<Users />} />}

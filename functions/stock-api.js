@@ -17,7 +17,8 @@ const C = {
 }
 const stockId = (branchId, itemId) => `${branchId}_${itemId}`
 
-export function stockApi(db) {
+/** Shared helpers for every function that changes stock (also used by purchasing-api.js). */
+export function ledger(db) {
   async function profileOf(auth) {
     if (!auth) throw new HttpsError('unauthenticated', 'Please sign in.')
     const me = (await db.collection(C.users).doc(auth.uid).get()).data()
@@ -113,6 +114,12 @@ export function stockApi(db) {
   }
 
   const cleanNote = (n) => (typeof n === 'string' ? n.trim().slice(0, 300) : '')
+
+  return { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote }
+}
+
+export function stockApi(db) {
+  const { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote } = ledger(db)
 
   /** Receive, waste or adjust at one branch. */
   const invRecordMovement = onCall(async (req) => {

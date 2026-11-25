@@ -3,7 +3,7 @@
 import { after, before, beforeEach, test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 
 const rules = readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8')
 
@@ -30,9 +30,14 @@ beforeEach(async () => {
     await setDoc(doc(db, 'inv_movements/m2'), { branchId: 'b2', itemId: 'milk', type: 'receive', qtyChange: 500 })
     await setDoc(doc(db, 'inv_transfers/t1'), { fromBranchId: 'b2', toBranchId: 'b1', status: 'sent', lines: [] })
     await setDoc(doc(db, 'inv_transfers/t2'), { fromBranchId: 'b2', toBranchId: 'b3', status: 'sent', lines: [] })
+    await setDoc(doc(db, 'inv_suppliers/s1'), supplier)
+    await setDoc(doc(db, 'inv_purchase_orders/po1'), { branchId: 'b1', status: 'sent', lines: [], number: 'PO-0001' })
+    await setDoc(doc(db, 'inv_purchase_orders/po2'), { branchId: 'b2', status: 'sent', lines: [], number: 'PO-0002' })
+    await setDoc(doc(db, 'inv_counters/purchaseOrders'), { next: 3 })
   })
 })
 
+const supplier = { name: 'Bean Co', contactName: '', phone: '012', telegram: '', email: '', address: '', paymentTerms: 'COD', leadTimeDays: 1, itemIds: ['milk'], note: '', active: true }
 const item = { name: 'Milk', baseUnit: 'ml', unitsPerPurchase: 1000, lastCostUsd: 1.5, active: true }
 
 test('nobody can create a profile from the app (only Cloud Functions can)', async () => {
@@ -110,4 +115,39 @@ test('a branch sees transfers coming to it, but not transfers between other bran
 
 test('nobody writes movements from the app', async () => {
   await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_movements/fake'), { branchId: 'b1', qtyChange: 5 }))
+})
+
+// ---- Phase 3: suppliers and purchase orders
+
+test('only admins add or edit suppliers; everyone with a profile reads them; nobody deletes', async () => {
+  await assertSucceeds(setDoc(doc(as('admin1', 'admin@x.kh'), 'inv_suppliers/s2'), supplier))
+  await assertSucceeds(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_suppliers/s1'), { phone: '099' }))
+  await assertFails(setDoc(doc(as('staff1', 'member@x.kh'), 'inv_suppliers/s3'), supplier))
+  await assertSucceeds(getDoc(doc(as('staff1', 'member@x.kh'), 'inv_suppliers/s1')))
+  await assertFails(getDoc(doc(as('nobody', 'nobody@x.kh'), 'inv_suppliers/s1')))
+  await assertFails(deleteDoc(doc(as('owner1', 'owner@x.kh'), 'inv_suppliers/s1')))
+})
+
+test('suppliers without a name, with odd fields or a negative lead time are refused', async () => {
+  const db = as('owner1', 'owner@x.kh')
+  await assertFails(setDoc(doc(db, 'inv_suppliers/a'), { ...supplier, name: '' }))
+  await assertFails(setDoc(doc(db, 'inv_suppliers/b'), { ...supplier, isOwner: true }))
+  await assertFails(setDoc(doc(db, 'inv_suppliers/c'), { ...supplier, leadTimeDays: -2 }))
+  await assertFails(setDoc(doc(db, 'inv_suppliers/d'), { ...supplier, itemIds: 'milk' }))
+})
+
+test('purchase orders: a branch reads its own, never another branch; nobody writes from the app', async () => {
+  const db = as('staff1', 'member@x.kh')
+  await assertSucceeds(getDoc(doc(db, 'inv_purchase_orders/po1')))
+  await assertFails(getDoc(doc(db, 'inv_purchase_orders/po2')))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_purchase_orders'), where('branchId', '==', 'b1'))))
+  await assertFails(getDocs(collection(db, 'inv_purchase_orders')))
+  await assertSucceeds(getDoc(doc(as('admin1', 'admin@x.kh'), 'inv_purchase_orders/po2')))
+  await assertFails(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_purchase_orders/po1'), { status: 'received' }))
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_purchase_orders/po9'), { branchId: 'b1', status: 'draft' }))
+})
+
+test('the order number counter is hidden from the app', async () => {
+  await assertFails(getDoc(doc(as('owner1', 'owner@x.kh'), 'inv_counters/purchaseOrders')))
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_counters/purchaseOrders'), { next: 1 }))
 })
