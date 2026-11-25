@@ -16,7 +16,7 @@ loader refuses to run against grove-mart.
    things, so a spare project you reuse keeps everything it already has:
    ```
    npx firebase login
-   npx firebase hosting:sites:create grove-stock-test --project trial
+   npx firebase hosting:sites:create grove-stock-test --project trial   # skip if it already exists
    npx firebase firestore:databases:create stock --location asia-southeast1 --project trial
    ```
 
