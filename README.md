@@ -16,8 +16,8 @@ Plan and data model: see the project's plan doc. Build status:
 | 2 | Stock per branch, receive, waste, adjust, transfers, movement history | built |
 | 3 | Suppliers and purchase orders, receiving against an order | built |
 | 4 | Menu with recipes per size, sales entry or CSV import, auto deduction, cancelling a sale | built |
-| 5 | Stock counts, expiry, low-stock alerts | next |
-| 6 | Reports and dashboard | |
+| 5 | Stock counts with variance, expiry (use oldest first), low-stock and expiry alerts | built |
+| 6 | Reports and dashboard | next |
 | 7 | Link sales from grove-system-kh | |
 
 ## How the code is organised
@@ -30,7 +30,7 @@ src/
 functions/      Cloud Functions (codebase "stock": never touches grove's functions)
 firestore.rules security rules for the stock database only
 tests/rules/    tests for those rules (run on the Firestore emulator)
-functions/test-int/  stock ledger tests against the emulator (receive, waste, transfers, purchase orders, sales)
+functions/test-int/  stock ledger tests against the emulator (receive, waste, transfers, purchase orders, sales, counts)
 ```
 
 How grove-system-kh stays untouched:

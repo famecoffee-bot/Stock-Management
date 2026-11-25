@@ -67,7 +67,7 @@ export interface StockLevel {
   parLevel: number
 }
 
-export type MovementType = 'receive' | 'waste' | 'adjust' | 'transfer_out' | 'transfer_in' | 'sale' | 'sale_void'
+export type MovementType = 'receive' | 'waste' | 'adjust' | 'transfer_out' | 'transfer_in' | 'sale' | 'sale_void' | 'count'
 
 /** One line of the stock history. Never edited. */
 export interface Movement {
@@ -265,3 +265,50 @@ export interface Sale {
 }
 
 export const PRODUCT_CATEGORIES = ['Coffee', 'Tea', 'Frappe', 'Juice & Soda', 'Food', 'Other']
+
+// ---- Phase 5: stock counts and expiry
+
+export interface CountLine {
+  itemId: string
+  itemName: string
+  category: string
+  baseUnit: BaseUnit
+  purchaseUnit: string
+  unitsPerPurchase: number
+  /** What the app expected when the count started (base units). Hidden while counting. */
+  expected: number
+  avgCostUsd: number
+  /** What was found on the shelf (base units); null = not counted yet. */
+  counted: number | null
+  /** Filled in when approved: counted - expected. */
+  variance?: number | null
+  varianceUsd?: number | null
+}
+
+export interface StockCount {
+  id: string
+  branchId: string
+  status: 'open' | 'submitted' | 'approved' | 'cancelled'
+  category: string | null
+  note: string | null
+  lines: CountLine[]
+  totals?: { counted: number; differences: number; lossUsd: number; gainUsd: number; netUsd: number }
+  createdBy: string
+  createdByName: string
+  createdAt?: { toDate(): Date }
+  submittedByName?: string
+  approvedByName?: string
+  approvedAt?: { toDate(): Date }
+  cancelledByName?: string
+}
+
+/** A received lot of a perishable item, with its expiry date. Made by the server on receive. */
+export interface Batch {
+  id: string
+  branchId: string
+  itemId: string
+  itemName: string
+  qtyReceived: number
+  expiryDate: string
+  receivedAt?: { toDate(): Date }
+}

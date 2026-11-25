@@ -8,6 +8,8 @@ const NAV = [
   { to: '/stock', label: 'Stock', admin: false },
   { to: '/stock/receive', label: 'Receive', admin: false },
   { to: '/sales', label: 'Sales', admin: false },
+  { to: '/counts', label: 'Counts', admin: false },
+  { to: '/expiry', label: 'Expiry', admin: false },
   { to: '/purchase-orders', label: 'Orders', admin: false },
   { to: '/transfers', label: 'Transfers', admin: false },
   { to: '/history', label: 'History', admin: false },

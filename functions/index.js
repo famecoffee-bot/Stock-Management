@@ -13,6 +13,7 @@ import { checkNewUser, isListedOwner } from './lib/users.js'
 import { stockApi } from './stock-api.js'
 import { purchasingApi } from './purchasing-api.js'
 import { salesApi } from './sales-api.js'
+import { countsApi } from './counts-api.js'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 3 })
@@ -121,3 +122,6 @@ export const { invSavePurchaseOrder, invPurchaseOrderAction, invReceivePurchaseO
 
 // ---- Phase 4: sales take ingredients out of stock by recipe (sales-api.js). Products and recipes are plain documents.
 export const { invRecordSales, invVoidSale } = salesApi(db)
+
+// ---- Phase 5: stock counts (counts-api.js). Expiry and alerts are worked out on screen from stock and batches.
+export const { invStartCount, invSaveCount, invApproveCount, invCancelCount } = countsApi(db)
