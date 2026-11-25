@@ -46,3 +46,35 @@ export const setStockLevels = call<{ ok: true }>('invSetStockLevels') as (d: {
   reorderPoint: number
   parLevel: number
 }) => Promise<{ ok: true }>
+
+// ---- Phase 3: purchase orders (functions/purchasing-api.js)
+
+export interface PoInputLine {
+  itemId: string
+  /** In purchase units (bags, cartons). */
+  packs: number
+  /** USD for one purchase unit. */
+  packCostUsd: number
+}
+
+export const savePurchaseOrder = call<{ ok: true; id: string; number: string }>('invSavePurchaseOrder') as (d: {
+  id?: string
+  branchId: string
+  supplierId: string
+  expectedDate?: string
+  note?: string
+  lines: PoInputLine[]
+}) => Promise<{ ok: true; id: string; number: string }>
+
+export type PoAction = 'send' | 'cancel' | 'close' | 'reopen'
+
+export const purchaseOrderAction = call<{ ok: true; status: string }>('invPurchaseOrderAction') as (d: {
+  id: string
+  action: PoAction
+}) => Promise<{ ok: true; status: string }>
+
+export const receivePurchaseOrder = call<{ ok: true; status: string }>('invReceivePurchaseOrder') as (d: {
+  id: string
+  note?: string
+  lines: { itemId: string; packs: number; packCostUsd?: number; expiryDate?: string }[]
+}) => Promise<{ ok: true; status: string }>

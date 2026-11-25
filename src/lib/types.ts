@@ -124,3 +124,77 @@ export const WASTE_REASONS: { value: string; label: string }[] = [
   { value: 'quality', label: 'Bad quality / remade' },
   { value: 'other', label: 'Other' },
 ]
+
+// ---- Phase 3: suppliers and purchase orders
+
+export interface Supplier {
+  id: string
+  name: string
+  contactName: string
+  phone: string
+  /** Telegram username or phone, how most suppliers in Cambodia take orders. */
+  telegram: string
+  email: string
+  address: string
+  /** e.g. "Cash on delivery", "7 days". */
+  paymentTerms: string
+  /** Usual days from order to delivery. */
+  leadTimeDays: number
+  /** Items this supplier sells (used to fill orders quickly). */
+  itemIds: string[]
+  note: string
+  active: boolean
+}
+
+export type PoStatus = 'draft' | 'sent' | 'partial' | 'received' | 'cancelled'
+
+export interface PoLine {
+  itemId: string
+  itemName: string
+  baseUnit: BaseUnit
+  purchaseUnit: string
+  unitsPerPurchase: number
+  /** Ordered, in purchase units (bags, cartons). */
+  packs: number
+  /** USD for ONE purchase unit. */
+  packCostUsd: number
+  receivedPacks: number
+  /** Price on the last delivery, if it differed. */
+  receivedCostUsd?: number
+}
+
+export interface PoReceipt {
+  at: { toDate(): Date }
+  byName: string
+  note: string | null
+  lines: { itemId: string; packs: number; packCostUsd: number }[]
+}
+
+export interface PurchaseOrder {
+  id: string
+  number: string
+  branchId: string
+  branchName: string
+  supplierId: string
+  supplierName: string
+  status: PoStatus
+  /** Closed before everything arrived. */
+  short: boolean
+  lines: PoLine[]
+  totalUsd: number
+  expectedDate: string | null
+  note: string | null
+  receipts: PoReceipt[]
+  log: { status: PoStatus; action?: string; byName: string; at: { toDate(): Date } }[]
+  createdByName: string
+  createdAt?: { toDate(): Date }
+  sentAt?: { toDate(): Date }
+}
+
+export const PO_STATUS_LABEL: Record<PoStatus, string> = {
+  draft: 'Draft',
+  sent: 'Sent, waiting',
+  partial: 'Part received',
+  received: 'Received',
+  cancelled: 'Cancelled',
+}

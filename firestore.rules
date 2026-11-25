@@ -97,5 +97,30 @@ service cloud.firestore {
         && (invAtBranch(resource.data.fromBranchId, 'viewer') || invAtBranch(resource.data.toBranchId, 'viewer'));
       allow write: if false;
     }
+
+    // ---- Phase 3: suppliers. Everyone reads (to see who sells what); admins write; never deleted.
+    function invSupplierOk(d) {
+      return d.keys().hasOnly(['name', 'contactName', 'phone', 'telegram', 'email', 'address', 'paymentTerms',
+                               'leadTimeDays', 'itemIds', 'note', 'active', 'createdAt', 'updatedAt', 'updatedBy'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.itemIds is list && d.itemIds.size() <= 300
+        && d.leadTimeDays is number && d.leadTimeDays >= 0
+        && d.active is bool;
+    }
+    match /inv_suppliers/{id} {
+      allow read: if invUser();
+      allow create, update: if invAdmin() && invSupplierOk(request.resource.data);
+      allow delete: if false;
+    }
+    // ---- purchase orders: read by branch; created, changed and received ONLY by Cloud Functions
+    //      (functions/purchasing-api.js), because receiving one changes stock.
+    match /inv_purchase_orders/{id} {
+      allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
+      allow write: if false;
+    }
+    // ---- running numbers (PO-0001, ...): only Cloud Functions touch these
+    match /inv_counters/{id} {
+      allow read, write: if false;
+    }
   }
 }

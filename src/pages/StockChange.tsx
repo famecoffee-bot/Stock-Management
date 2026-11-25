@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { orderBy, where } from 'firebase/firestore'
 import { COL } from '../lib/collections'
 import { useCollection } from '../lib/data'
@@ -11,6 +11,7 @@ import { newDraft, toChangeLine, type DraftLine } from '../lib/lines'
 import { WASTE_REASONS, type Item, type StockLevel } from '../lib/types'
 import { formatQty, formatUsd } from '../lib/units'
 import { Empty, ErrorNote, PageHeader, friendlyError } from '../components/ui'
+import { OpenOrdersCard, PoReceive } from './PoReceive'
 
 const TEXT: Record<ChangeType, { tab: string; title: string; subtitle: string; button: string; need: 'staff' | 'manager' }> = {
   receive: { tab: 'Receive', title: 'Receive stock', subtitle: 'Goods that arrived from a supplier or the market.', button: 'Save receiving', need: 'staff' },
@@ -21,6 +22,8 @@ const TEXT: Record<ChangeType, { tab: string; title: string; subtitle: string; b
 export function StockChange({ type }: { type: ChangeType }) {
   const me = useProfile()
   const nav = useNavigate()
+  const [params] = useSearchParams()
+  const poId = type === 'receive' ? params.get('po') : null
   const { current } = useBranch()
   const items = useCollection<Item>(COL.items, [orderBy('name')])
   const levels = useCollection<StockLevel>(COL.stock, current ? [where('branchId', '==', current.id)] : [], current?.id ?? '', !current)
@@ -80,6 +83,11 @@ export function StockChange({ type }: { type: ChangeType }) {
             </Link>
           ))}
       </div>
+      {poId ? (
+        <PoReceive id={poId} />
+      ) : (
+      <>
+      {type === 'receive' && <OpenOrdersCard branchId={current.id} />}
       <form onSubmit={submit} className="space-y-3">
         <ErrorNote message={error} />
         {done && (
@@ -204,6 +212,8 @@ export function StockChange({ type }: { type: ChangeType }) {
           </button>
         </div>
       </form>
+      </>
+      )}
     </>
   )
 }

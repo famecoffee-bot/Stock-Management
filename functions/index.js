@@ -11,6 +11,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { setGlobalOptions } from 'firebase-functions/v2'
 import { checkNewUser, isListedOwner } from './lib/users.js'
 import { stockApi } from './stock-api.js'
+import { purchasingApi } from './purchasing-api.js'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 3 })
@@ -113,3 +114,6 @@ export const invSetPassword = onCall(async (req) => {
 
 // ---- Phase 2: stock in / out, transfers, stock levels (stock-api.js)
 export const { invRecordMovement, invSendTransfer, invReceiveTransfer, invCancelTransfer, invSetStockLevels } = stockApi(db)
+
+// ---- Phase 3: purchase orders (purchasing-api.js). Suppliers are plain documents (rules check them).
+export const { invSavePurchaseOrder, invPurchaseOrderAction, invReceivePurchaseOrder } = purchasingApi(db)

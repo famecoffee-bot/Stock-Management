@@ -10,6 +10,7 @@ import type { Item, StockLevel, Transfer } from '../lib/types'
 import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Badge, PageHeader } from '../components/ui'
 import { stockRows } from './Stock'
+import { useOpenOrders } from './PurchaseOrders'
 
 export function Dashboard() {
   const me = useProfile()
@@ -20,6 +21,7 @@ export function Dashboard() {
   const levels = useCollection<StockLevel>(COL.stock, [where('branchId', '==', id)], id, !current)
   const incoming = useCollection<Transfer>(COL.transfers, [where('toBranchId', '==', id), where('status', '==', 'sent'), limit(20)], `in${id}`, !current)
 
+  const openOrders = useOpenOrders(current?.id)
   const rows = useMemo(() => stockRows(items.rows, levels.rows), [items.rows, levels.rows])
   const low = rows.filter((r) => r.status !== 'ok')
   const value = rows.reduce((s, r) => s + r.valueUsd, 0)
@@ -36,10 +38,11 @@ export function Dashboard() {
     <>
       <PageHeader title={`Hello, ${me.name}`} subtitle={current ? `${current.name} at a glance` : 'Welcome to Grove Stock'} />
       {current && (
-        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Stock value" value={formatUsd(value)} note={formatKhr(value, settings.usdToKhr)} />
           <Stat label="Low or out" value={low.length} note={low.length ? 'Needs ordering' : 'All good'} />
           <Stat label="Transfers to confirm" value={incoming.rows.length} />
+          <Stat label="Orders on the way" value={openOrders.rows.length} note="Receive them on the Receive page" />
         </div>
       )}
       {canWork && (
@@ -47,11 +50,17 @@ export function Dashboard() {
           <Link to="/stock/receive" className="btn">Receive stock</Link>
           <Link to="/stock/waste" className="btn-ghost">Record waste</Link>
           <Link to="/transfers" className="btn-ghost">Transfers</Link>
+          <Link to="/purchase-orders" className="btn-ghost">Purchase orders</Link>
         </div>
       )}
       {low.length > 0 && (
         <div className="card mb-5">
-          <h2 className="mb-2 font-semibold text-bean-900">Low or out of stock</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-semibold text-bean-900">Low or out of stock</h2>
+            {current && canAtBranch(me, current.id, 'manager') && (
+              <Link to="/purchase-orders/new" className="text-sm text-bean-700 hover:underline">Write an order</Link>
+            )}
+          </div>
           <ul className="divide-y divide-stone-100">
             {low.slice(0, 10).map((r) => (
               <li key={r.item.id} className="flex items-center justify-between py-2 text-sm">
