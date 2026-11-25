@@ -8,16 +8,17 @@ import { useProfile } from '../lib/auth'
 import { canAssignRole, isOwner } from '../lib/permissions'
 import type { Branch, BranchRole, InvUser, Role } from '../lib/types'
 import { Badge, ErrorNote, Field, Modal, PageHeader, friendlyError } from '../components/ui'
+import { t } from '../lib/i18n'
 
 const ROLE_TEXT: Record<Role, string> = {
-  owner: 'Owner: everything, all branches',
-  admin: 'Admin: everything except managing owners',
-  member: 'Member: only the branches ticked below',
+  owner: t('Owner: everything, all branches'),
+  admin: t('Admin: everything except managing owners'),
+  member: t('Member: only the branches ticked below'),
 }
 const BRANCH_ROLE_TEXT: Record<BranchRole, string> = {
-  manager: 'Manager',
-  staff: 'Staff',
-  viewer: 'Viewer',
+  manager: t('Manager'),
+  staff: t('Staff'),
+  viewer: t('Viewer'),
 }
 
 export function Users() {
@@ -30,18 +31,18 @@ export function Users() {
   return (
     <>
       <PageHeader
-        title="Users"
-        subtitle="Who can use the stock app, and what they can do"
-        action={<button className="btn" onClick={() => setEditing({ role: 'member', branchRoles: {}, active: true })}>+ Add user</button>}
+        title={t('Users')}
+        subtitle={t('Who can use the stock app, and what they can do')}
+        action={<button className="btn" onClick={() => setEditing({ role: 'member', branchRoles: {}, active: true })}>{t('+ Add user')}</button>}
       />
       <ErrorNote message={users.error} />
       <div className="card overflow-x-auto p-0">
         <table className="w-full min-w-[560px]">
           <thead className="bg-stone-50">
             <tr>
-              <th className="th">Name</th>
-              <th className="th">Role</th>
-              <th className="th">Branches</th>
+              <th className="th">{t('Name')}</th>
+              <th className="th">{t('Role')}</th>
+              <th className="th">{t('Branches')}</th>
               <th className="th"></th>
             </tr>
           </thead>
@@ -53,19 +54,19 @@ export function Users() {
                   <div className="text-xs text-stone-400">{u.email}</div>
                 </td>
                 <td className="td">
-                  <Badge tone={u.role === 'member' ? 'stone' : 'amber'}>{u.role}</Badge> {!u.active && <Badge tone="red">Blocked</Badge>}
+                  <Badge tone={u.role === 'member' ? 'stone' : 'amber'}>{u.role}</Badge> {!u.active && <Badge tone="red">{t('Blocked')}</Badge>}
                 </td>
                 <td className="td text-xs">
                   {u.role === 'member'
                     ? Object.entries(u.branchRoles ?? {})
                         .map(([b, r]) => `${branchName(b)} (${r})`)
-                        .join(', ') || 'none'
-                    : 'all'}
+                        .join(', ') || t('none')
+                    : t('all')}
                 </td>
                 <td className="td text-right">
                   {canAssignRole(me, u.role) && u.id !== me.id && (
                     <button className="text-sm text-bean-700 hover:underline" onClick={() => setEditing(u)}>
-                      Edit
+                      {t('Edit')}
                     </button>
                   )}
                 </td>
@@ -125,7 +126,7 @@ function UserForm({
         await saveDoc(COL.users, u.id, data)
         if (password) await httpsCallable(functions, 'invSetPassword')({ uid: u.id, password })
       }
-      setDone(isNew ? `Done. Give ${data.name} their email and password.` : 'Saved.')
+      setDone(isNew ? t('Done. Give {name} their email and password.', { name: data.name }) : t('Saved.'))
       setTimeout(onClose, 1200)
     } catch (err) {
       setError(friendlyError(err))
@@ -134,22 +135,22 @@ function UserForm({
   }
 
   return (
-    <Modal title={isNew ? 'New user' : `Edit ${initial.name}`} onClose={onClose}>
+    <Modal title={isNew ? t('New user') : t('Edit {name}', { name: initial.name })} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ErrorNote message={error} />
         {done && <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{done}</div>}
-        <Field label="Name">
+        <Field label={t('Name')}>
           <input className="input" value={u.name ?? ''} onChange={(e) => setU({ ...u, name: e.target.value })} required />
         </Field>
         {isNew && (
-          <Field label="Email (used to sign in)">
+          <Field label={t('Email (used to sign in)')}>
             <input className="input" type="email" value={u.email ?? ''} onChange={(e) => setU({ ...u, email: e.target.value })} required />
           </Field>
         )}
-        <Field label={isNew ? 'Password' : 'New password (leave empty to keep)'} hint="At least 8 characters.">
+        <Field label={isNew ? t('Password') : t('New password (leave empty to keep)')} hint={t('At least 8 characters.')}>
           <input className="input" type="text" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required={isNew} />
         </Field>
-        <Field label="Role">
+        <Field label={t('Role')}>
           <select className="input" value={u.role} onChange={(e) => setU({ ...u, role: e.target.value as Role })}>
             {roles.map((r) => (
               <option key={r} value={r}>
@@ -160,7 +161,7 @@ function UserForm({
         </Field>
         {u.role === 'member' && (
           <div>
-            <span className="label">Branches</span>
+            <span className="label">{t('Branches')}</span>
             <div className="space-y-1">
               {branches.map((b) => (
                 <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border border-stone-200 px-3 py-1.5">
@@ -172,7 +173,7 @@ function UserForm({
                     value={u.branchRoles?.[b.id] ?? ''}
                     onChange={(e) => setBranchRole(b.id, e.target.value as BranchRole | '')}
                   >
-                    <option value="">No access</option>
+                    <option value="">{t('No access')}</option>
                     {(Object.keys(BRANCH_ROLE_TEXT) as BranchRole[]).map((r) => (
                       <option key={r} value={r}>
                         {BRANCH_ROLE_TEXT[r]}
@@ -181,19 +182,19 @@ function UserForm({
                   </select>
                 </div>
               ))}
-              {branches.length === 0 && <p className="text-sm text-stone-500">Add branches first.</p>}
+              {branches.length === 0 && <p className="text-sm text-stone-500">{t('Add branches first.')}</p>}
             </div>
           </div>
         )}
         {!isNew && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={u.active ?? true} onChange={(e) => setU({ ...u, active: e.target.checked })} />
-            Can sign in (untick to block)
+            {t('Can sign in (untick to block)')}
           </label>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn" disabled={busy}>Save</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>{t('Cancel')}</button>
+          <button className="btn" disabled={busy}>{t('Save')}</button>
         </div>
       </form>
     </Modal>

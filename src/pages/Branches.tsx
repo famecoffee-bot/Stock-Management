@@ -6,6 +6,7 @@ import { useProfile } from '../lib/auth'
 import { isAdmin, visibleBranchIds } from '../lib/permissions'
 import type { Branch } from '../lib/types'
 import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from '../components/ui'
+import { t } from '../lib/i18n'
 
 export function Branches() {
   const me = useProfile()
@@ -17,13 +18,13 @@ export function Branches() {
   return (
     <>
       <PageHeader
-        title="Branches"
-        subtitle={`${list.length} branch${list.length === 1 ? '' : 'es'}`}
-        action={isAdmin(me) && <button className="btn" onClick={() => setEditing({ active: true })}>+ Add branch</button>}
+        title={t('Branches')}
+        subtitle={list.length === 1 ? t('1 branch') : t('{n} branches', { n: list.length })}
+        action={isAdmin(me) && <button className="btn" onClick={() => setEditing({ active: true })}>{t('+ Add branch')}</button>}
       />
       <ErrorNote message={error} />
       {!loading && list.length === 0 ? (
-        <Empty>No branches yet.{isAdmin(me) && ' Add your first branch to start.'}</Empty>
+        <Empty>{t('No branches yet.')}{isAdmin(me) && ' ' + t('Add your first branch to start.')}</Empty>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((b) => (
@@ -33,13 +34,13 @@ export function Branches() {
                   <div className="text-xs font-semibold text-bean-500">{b.code}</div>
                   <div className="font-medium">{b.name}</div>
                   {b.address && <div className="text-sm text-stone-500">{b.address}</div>}
-                  {b.groveBranch && <div className="mt-1 text-xs text-stone-400">POS name: {b.groveBranch}</div>}
+                  {b.groveBranch && <div className="mt-1 text-xs text-stone-400">{t('POS name:')}{' '}{b.groveBranch}</div>}
                 </div>
-                {!b.active && <Badge tone="red">Closed</Badge>}
+                {!b.active && <Badge tone="red">{t('Closed')}</Badge>}
               </div>
               {isAdmin(me) && (
                 <button className="btn-ghost mt-3 w-full" onClick={() => setEditing(b)}>
-                  Edit
+                  {t('Edit')}
                 </button>
               )}
             </div>
@@ -61,7 +62,7 @@ function BranchForm({ initial, onClose, existing }: { initial: Partial<Branch>; 
     e.preventDefault()
     const code = (b.code ?? '').trim().toUpperCase()
     if (existing.some((x) => x.code === code && x.id !== b.id)) {
-      setError(`Code ${code} is already used by another branch.`)
+      setError(t('Code {code} is already used by another branch.', { code }))
       return
     }
     setBusy(true)
@@ -81,32 +82,32 @@ function BranchForm({ initial, onClose, existing }: { initial: Partial<Branch>; 
   }
 
   return (
-    <Modal title={b.id ? 'Edit branch' : 'New branch'} onClose={onClose}>
+    <Modal title={b.id ? t('Edit branch') : t('New branch')} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ErrorNote message={error} />
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Code">
-            <input className="input uppercase" value={b.code ?? ''} onChange={(e) => set('code', e.target.value)} placeholder="BKK1" maxLength={8} required />
+          <Field label={t('Code')}>
+            <input className="input uppercase" value={b.code ?? ''} onChange={(e) => set('code', e.target.value)} placeholder={t('BKK1')} maxLength={8} required />
           </Field>
           <div className="col-span-2">
-            <Field label="Name">
-              <input className="input" value={b.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="Grove BKK1" required />
+            <Field label={t('Name')}>
+              <input className="input" value={b.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder={t('Grove BKK1')} required />
             </Field>
           </div>
         </div>
-        <Field label="Address">
+        <Field label={t('Address')}>
           <input className="input" value={b.address ?? ''} onChange={(e) => set('address', e.target.value)} />
         </Field>
-        <Field label="Name in grove-system-kh" hint="Write it exactly as the POS shows it, so sales can be linked later.">
+        <Field label={t('Name in grove-system-kh')} hint={t('Write it exactly as the POS shows it, so sales can be linked later.')}>
           <input className="input" value={b.groveBranch ?? ''} onChange={(e) => set('groveBranch', e.target.value)} />
         </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={b.active ?? true} onChange={(e) => set('active', e.target.checked)} />
-          Open (untick to close a branch; its history is kept)
+          {t('Open (untick to close a branch; its history is kept)')}
         </label>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn" disabled={busy}>Save</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>{t('Cancel')}</button>
+          <button className="btn" disabled={busy}>{t('Save')}</button>
         </div>
       </form>
     </Modal>

@@ -12,11 +12,12 @@ import { WASTE_REASONS, type Item, type StockLevel } from '../lib/types'
 import { formatQty, formatUsd } from '../lib/units'
 import { Empty, ErrorNote, PageHeader, friendlyError } from '../components/ui'
 import { OpenOrdersCard, PoReceive } from './PoReceive'
+import { t } from '../lib/i18n'
 
 const TEXT: Record<ChangeType, { tab: string; title: string; subtitle: string; button: string; need: 'staff' | 'manager' }> = {
-  receive: { tab: 'Receive', title: 'Receive stock', subtitle: 'Goods that arrived from a supplier or the market.', button: 'Save receiving', need: 'staff' },
-  waste: { tab: 'Waste', title: 'Record waste', subtitle: 'Anything thrown away, spilled, expired or used by staff.', button: 'Save waste', need: 'staff' },
-  adjust: { tab: 'Adjust', title: 'Adjust stock', subtitle: 'Correct the number to what is really on the shelf. Managers only.', button: 'Save adjustment', need: 'manager' },
+  receive: { tab: t('Receive'), title: t('Receive stock'), subtitle: t('Goods that arrived from a supplier or the market.'), button: t('Save receiving'), need: 'staff' },
+  waste: { tab: t('Waste'), title: t('Record waste'), subtitle: t('Anything thrown away, spilled, expired or used by staff.'), button: t('Save waste'), need: 'staff' },
+  adjust: { tab: t('Adjust'), title: t('Adjust stock'), subtitle: t('Correct the number to what is really on the shelf. Managers only.'), button: t('Save adjustment'), need: 'manager' },
 }
 
 export function StockChange({ type }: { type: ChangeType }) {
@@ -36,10 +37,10 @@ export function StockChange({ type }: { type: ChangeType }) {
   const active = useMemo(() => items.rows.filter((i) => i.active), [items.rows])
   const itemById = useMemo(() => new Map(items.rows.map((i) => [i.id, i])), [items.rows])
   const onHand = (itemId: string) => levels.rows.find((s) => s.itemId === itemId)?.qty ?? 0
-  const t = TEXT[type]
+  const txt = TEXT[type]
 
-  if (!current) return <Empty>Choose a branch first.</Empty>
-  if (!canAtBranch(me, current.id, t.need)) return <Empty>You need {t.need} rights at {current.name} to do this.</Empty>
+  if (!current) return <Empty>{t('Choose a branch first.')}</Empty>
+  if (!canAtBranch(me, current.id, txt.need)) return <Empty>{t('You need')}{' '}{t(txt.need)}{' '}{t('rights at')}{' '}{current.name}{' '}{t('to do this.')}</Empty>
 
   const update = (key: string, patch: Partial<DraftLine>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)))
 
@@ -56,7 +57,7 @@ export function StockChange({ type }: { type: ChangeType }) {
     setBusy(true)
     try {
       await recordMovement({ branchId: current.id, type, lines: out, note })
-      setDone(`Saved ${out.length} line${out.length === 1 ? '' : 's'}.`)
+      setDone(t('Saved {n} line(s).', { n: out.length }))
       setLines([newDraft()])
       setNote('')
     } catch (err) {
@@ -73,7 +74,7 @@ export function StockChange({ type }: { type: ChangeType }) {
 
   return (
     <>
-      <PageHeader title={`${t.title} · ${current.name}`} subtitle={t.subtitle} />
+      <PageHeader title={`${txt.title} · ${current.name}`} subtitle={txt.subtitle} />
       <div className="mb-3 flex gap-2 text-sm">
         {(['receive', 'waste', 'adjust'] as ChangeType[])
           .filter((k) => canAtBranch(me, current.id, TEXT[k].need))
@@ -94,7 +95,7 @@ export function StockChange({ type }: { type: ChangeType }) {
           <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
             {done}
             <button type="button" className="underline" onClick={() => nav('/stock')}>
-              See stock
+              {t('See stock')}
             </button>
           </div>
         )}
@@ -104,33 +105,33 @@ export function StockChange({ type }: { type: ChangeType }) {
           return (
             <div key={l.key} className="card space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-stone-400">Line {idx + 1}</span>
+                <span className="text-xs font-semibold text-stone-400">{t('Line')}{' '}{idx + 1}</span>
                 {lines.length > 1 && (
                   <button type="button" className="text-xs text-red-600 hover:underline" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
-                    Remove
+                    {t('Remove')}
                   </button>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="label">Item</span>
+                  <span className="label">{t('Item')}</span>
                   <select className="input" value={l.itemId} onChange={(e) => {
                     const it = itemById.get(e.target.value)
                     // start the cost at the last price paid, so staff only change it when the price changed
                     update(l.key, { itemId: e.target.value, ...(type === 'receive' && it ? { packCostUsd: String(it.lastCostUsd ?? '') } : {}) })
                   }} required>
-                    <option value="">Choose…</option>
+                    <option value="">{t('Choose…')}</option>
                     {active.map((i) => (
                       <option key={i.id} value={i.id} disabled={lines.some((x) => x.key !== l.key && x.itemId === i.id)}>
                         {i.name}
                       </option>
                     ))}
                   </select>
-                  {item && <span className="mt-1 block text-xs text-stone-400">On hand now: {formatQty(onHand(item.id), item.baseUnit)}</span>}
+                  {item && <span className="mt-1 block text-xs text-stone-400">{t('On hand now:')}{' '}{formatQty(onHand(item.id), item.baseUnit)}</span>}
                 </label>
                 {item && (
                   <label className="block">
-                    <span className="label">Count in</span>
+                    <span className="label">{t('Count in')}</span>
                     <select className="input" value={l.inPacks ? 'pack' : 'base'} onChange={(e) => update(l.key, { inPacks: e.target.value === 'pack' })}>
                       <option value="pack">
                         {item.purchaseUnit} ({formatQty(item.unitsPerPurchase, item.baseUnit)})
@@ -144,18 +145,18 @@ export function StockChange({ type }: { type: ChangeType }) {
                 <div className="grid gap-3 sm:grid-cols-3">
                   {type === 'adjust' ? (
                     <label className="block">
-                      <span className="label">Real amount now ({unitLabel})</span>
+                      <span className="label">{t('Real amount now ({unit})', { unit: unitLabel })}</span>
                       <input className="input" type="number" min="0" step="any" value={l.actual} onChange={(e) => update(l.key, { actual: e.target.value })} required />
                     </label>
                   ) : (
                     <label className="block">
-                      <span className="label">Quantity ({unitLabel})</span>
+                      <span className="label">{t('Quantity ({unit})', { unit: unitLabel })}</span>
                       <input className="input" type="number" min="0" step="any" value={l.qty} onChange={(e) => update(l.key, { qty: e.target.value })} required />
                     </label>
                   )}
                   {type === 'receive' && (
                     <label className="block">
-                      <span className="label">Cost per {item.purchaseUnit} (USD)</span>
+                      <span className="label">{t('Cost per')}{' '}{item.purchaseUnit}{' '}{t('(USD)')}</span>
                       <input
                         className="input"
                         type="number"
@@ -170,15 +171,15 @@ export function StockChange({ type }: { type: ChangeType }) {
                   )}
                   {type === 'receive' && item.perishable && (
                     <label className="block">
-                      <span className="label">Expiry date</span>
+                      <span className="label">{t('Expiry date')}</span>
                       <input className="input" type="date" value={l.expiryDate} onChange={(e) => update(l.key, { expiryDate: e.target.value })} required />
                     </label>
                   )}
                   {type === 'waste' && (
                     <label className="block">
-                      <span className="label">Reason</span>
+                      <span className="label">{t('Reason')}</span>
                       <select className="input" value={l.reason} onChange={(e) => update(l.key, { reason: e.target.value })} required>
-                        <option value="">Choose…</option>
+                        <option value="">{t('Choose…')}</option>
                         {WASTE_REASONS.map((r) => (
                           <option key={r.value} value={r.value}>
                             {r.label}
@@ -189,8 +190,8 @@ export function StockChange({ type }: { type: ChangeType }) {
                   )}
                   {type === 'adjust' && (
                     <label className="block sm:col-span-2">
-                      <span className="label">Why?</span>
-                      <input className="input" value={l.reason} onChange={(e) => update(l.key, { reason: e.target.value })} placeholder="Counted the shelf" required />
+                      <span className="label">{t('Why?')}</span>
+                      <input className="input" value={l.reason} onChange={(e) => update(l.key, { reason: e.target.value })} placeholder={t('Counted the shelf')} required />
                     </label>
                   )}
                 </div>
@@ -199,16 +200,16 @@ export function StockChange({ type }: { type: ChangeType }) {
           )
         })}
         <button type="button" className="btn-ghost w-full" onClick={() => setLines((ls) => [...ls, newDraft()])}>
-          + Add another item
+          {t('+ Add another item')}
         </button>
         <label className="block">
-          <span className="label">Note (optional)</span>
-          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={type === 'receive' ? 'Invoice number, supplier…' : ''} />
+          <span className="label">{t('Note (optional)')}</span>
+          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={type === 'receive' ? t('Invoice number, supplier…') : ''} />
         </label>
         <div className="flex items-center justify-between gap-3">
-          {type === 'receive' ? <span className="text-sm text-stone-600">Total: {formatUsd(total)}</span> : <span />}
+          {type === 'receive' ? <span className="text-sm text-stone-600">{t('Total:')}{' '}{formatUsd(total)}</span> : <span />}
           <button className="btn" disabled={busy}>
-            {busy ? 'Saving…' : t.button}
+            {busy ? t('Saving…') : txt.button}
           </button>
         </div>
       </form>

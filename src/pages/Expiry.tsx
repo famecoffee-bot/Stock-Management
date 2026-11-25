@@ -11,6 +11,7 @@ import { shopToday } from '../lib/sales'
 import type { Batch, Item, StockLevel } from '../lib/types'
 import { formatQty } from '../lib/units'
 import { Badge, Empty, PageHeader } from '../components/ui'
+import { t } from '../lib/i18n'
 
 // Phase 5: what will expire soon. Lots are made when perishable stock is received
 // with an expiry date. See lib/expiry.ts for how we work out which lots are left.
@@ -56,17 +57,17 @@ export function useExpiry(branchId: string | undefined) {
 }
 
 export const LEVEL_TEXT: Record<ExpiryLevel, { label: (d: number) => string; tone: 'red' | 'amber' | 'green' | 'stone' }> = {
-  expired: { label: (d) => (d === -1 ? 'Expired yesterday' : `Expired ${-d} days ago`), tone: 'red' },
-  today: { label: (d) => (d === 0 ? 'Expires today' : 'Expires tomorrow'), tone: 'red' },
-  soon: { label: (d) => `${d} days left`, tone: 'amber' },
-  ok: { label: (d) => `${d} days left`, tone: 'green' },
+  expired: { label: (d) => (d === -1 ? t('Expired yesterday') : t('Expired {n} days ago', { n: -d })), tone: 'red' },
+  today: { label: (d) => (d === 0 ? t('Expires today') : t('Expires tomorrow')), tone: 'red' },
+  soon: { label: (d) => t('{d} days left', { d }), tone: 'amber' },
+  ok: { label: (d) => t('{d} days left', { d }), tone: 'green' },
 }
 
 export function Expiry() {
   const me = useProfile()
   const { current } = useBranch()
   const ex = useExpiry(current?.id)
-  if (!current) return <Empty>Choose a branch first.</Empty>
+  if (!current) return <Empty>{t('Choose a branch first.')}</Empty>
   const staff = canAtBranch(me, current.id, 'staff')
   const expired = ex.rows.filter((r) => r.level === 'expired')
   const useFirst = ex.rows.filter((r) => r.level === 'today' || r.level === 'soon')
@@ -74,24 +75,23 @@ export function Expiry() {
 
   return (
     <>
-      <PageHeader title={`Expiry · ${current.name}`} subtitle="Use the oldest first. What expires soonest is at the top." />
+      <PageHeader title={t('Expiry · {name}', { name: current.name })} subtitle={t('Use the oldest first. What expires soonest is at the top.')} />
       <div className="card mb-4 text-sm text-stone-600">
-        The app does not track which carton each drink used. It assumes the team <b>uses the oldest first</b>, so what is left on the shelf is the
-        newest stock. If the list looks wrong, the older stock is still there: use it first, or record it as waste.
+        {t('The app does not track which carton each drink used. It assumes the team')}{' '}<b>{t('uses the oldest first')}</b>{t(', so what is left on the shelf is the newest stock. If the list looks wrong, the older stock is still there: use it first, or record it as waste.')}
       </div>
       {ex.error && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{ex.error}</div>}
       {ex.rows.length === 0 && ex.unknown.length === 0 && (
-        <Empty>{ex.loading ? 'Loading…' : 'Nothing perishable in stock with an expiry date. Expiry dates are entered when you receive perishable items.'}</Empty>
+        <Empty>{ex.loading ? t('Loading…') : t('Nothing perishable in stock with an expiry date. Expiry dates are entered when you receive perishable items.')}</Empty>
       )}
       {expired.length > 0 && (
-        <Section title="Expired: throw away and record as waste" rows={expired} action={staff ? <Link to="/stock/waste" className="btn">Record waste</Link> : null} />
+        <Section title={t('Expired: throw away and record as waste')} rows={expired} action={staff ? <Link to="/stock/waste" className="btn">{t('Record waste')}</Link> : null} />
       )}
-      {useFirst.length > 0 && <Section title="Use these first" rows={useFirst} />}
-      {later.length > 0 && <Section title="Later" rows={later} />}
+      {useFirst.length > 0 && <Section title={t('Use these first')} rows={useFirst} />}
+      {later.length > 0 && <Section title={t('Later')} rows={later} />}
       {ex.unknown.length > 0 && (
         <div className="card mt-4 text-sm">
-          <div className="mb-1 font-semibold text-bean-900">Expiry date not known</div>
-          <p className="mb-2 text-stone-500">More stock than the lots received with a date (for example, it came by transfer). Check these by hand.</p>
+          <div className="mb-1 font-semibold text-bean-900">{t('Expiry date not known')}</div>
+          <p className="mb-2 text-stone-500">{t('More stock than the lots received with a date (for example, it came by transfer). Check these by hand.')}</p>
           <ul className="space-y-1">
             {ex.unknown.map((u) => (
               <li key={u.item.id} className="flex justify-between">
@@ -118,7 +118,7 @@ function Section({ title, rows, action }: { title: string; rows: ExpiryRow[]; ac
           <li key={r.batch.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
             <span>
               <span className="font-medium">{r.item.name}</span>
-              <span className="ml-2 text-xs text-stone-400">expires {r.batch.expiryDate}</span>
+              <span className="ml-2 text-xs text-stone-400">{t('expires')}{' '}{r.batch.expiryDate}</span>
             </span>
             <span className="flex items-center gap-2">
               {formatQty(r.qtyLeft, r.item.baseUnit)}

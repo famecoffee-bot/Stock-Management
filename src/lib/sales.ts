@@ -1,6 +1,7 @@
 import type { SaleInputLine } from './api'
 import type { Item, Product, ProductSize, RecipeLine } from './types'
 import { costPerBase } from './units'
+import { t } from './i18n'
 
 // Recipes and sales helpers for the screens. The server (functions/lib/sales.js)
 // checks everything again before any stock moves.
@@ -83,9 +84,9 @@ export function parseSalesCsv(text: string, products: Product[]): { lines: SaleI
     if (i === 0 && !cells.some((c) => /^\d+(\.\d+)?$/.test(c))) return
     rows++
     const problem = (reason: string) => problems.push({ row: i + 1, text: raw.trim(), reason })
-    if (cells.length < 2) return problem('Needs a product and a number sold.')
+    if (cells.length < 2) return problem(t('Needs a product and a number sold.'))
     const qty = Number(cells[cells.length - 1].replace(/,/g, ''))
-    if (!Number.isFinite(qty) || qty <= 0) return problem('The last column must be the number sold.')
+    if (!Number.isFinite(qty) || qty <= 0) return problem(t('The last column must be the number sold.'))
     let name = cells[0]
     let sizeText = cells.length >= 3 ? cells[1] : ''
     const m = !sizeText && name.match(/^(.*)\(([^)]+)\)\s*$/)
@@ -95,12 +96,12 @@ export function parseSalesCsv(text: string, products: Product[]): { lines: SaleI
     }
     let p = byName.get(norm(name))
     if (!p && !m) p = byName.get(norm(cells[0]))
-    if (!p) return problem(`No menu product called "${name.trim()}".`)
+    if (!p) return problem(t('No menu product called "{name}".', { name: name.trim() }))
     let size: ProductSize | undefined
     if (p.sizes.length === 1) size = p.sizes[0]
-    else if (!sizeText) return problem(`${p.name} has sizes: ${p.sizes.map((s) => s.key).join(', ')}. Which one?`)
+    else if (!sizeText) return problem(t('{name} has sizes: {sizes}. Which one?', { name: p.name, sizes: p.sizes.map((s) => s.key).join(', ') }))
     else size = p.sizes.find((s) => norm(s.key) === norm(sizeText) || norm(s.label) === norm(sizeText))
-    if (!size) return problem(`${p.name} has no size "${sizeText}".`)
+    if (!size) return problem(t('{name} has no size "{sizeText}".', { name: p.name, sizeText }))
     const k = `${p.id}|${size.key}`
     merged.set(k, { productId: p.id, sizeKey: size.key, qty: round((merged.get(k)?.qty ?? 0) + qty) })
   })

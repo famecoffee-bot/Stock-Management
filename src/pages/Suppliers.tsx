@@ -7,6 +7,7 @@ import { useProfile } from '../lib/auth'
 import { isAdmin } from '../lib/permissions'
 import type { Item, Supplier } from '../lib/types'
 import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from '../components/ui'
+import { t } from '../lib/i18n'
 
 // Suppliers: who you buy from, how to reach them, and which items they sell.
 // Admins add and edit them; everyone can look them up.
@@ -36,20 +37,20 @@ export function Suppliers() {
   return (
     <>
       <PageHeader
-        title="Suppliers"
-        subtitle="Who you buy from, how to reach them, and what they sell"
-        action={admin && <button className="btn" onClick={() => setEditing({ active: true, itemIds: [], leadTimeDays: 1 })}>+ Add supplier</button>}
+        title={t('Suppliers')}
+        subtitle={t('Who you buy from, how to reach them, and what they sell')}
+        action={admin && <button className="btn" onClick={() => setEditing({ active: true, itemIds: [], leadTimeDays: 1 })}>{t('+ Add supplier')}</button>}
       />
       <ErrorNote message={error} />
       <div className="mb-3 flex flex-wrap gap-2">
-        <input className="input max-w-xs" placeholder="Search name, contact or item" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input max-w-xs" placeholder={t('Search name, contact or item')} value={search} onChange={(e) => setSearch(e.target.value)} />
         <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-          Show stopped suppliers
+          {t('Show stopped suppliers')}
         </label>
       </div>
       {!loading && list.length === 0 ? (
-        <Empty>{rows.length === 0 ? 'No suppliers yet. Add the companies and market sellers you buy from.' : 'Nothing matches your search.'}</Empty>
+        <Empty>{rows.length === 0 ? t('No suppliers yet. Add the companies and market sellers you buy from.') : t('Nothing matches your search.')}</Empty>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {list.map((s) => (
@@ -61,7 +62,7 @@ export function Suppliers() {
                     {[s.contactName, s.paymentTerms, s.leadTimeDays ? `usually ${s.leadTimeDays} day${s.leadTimeDays === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                {!s.active && <Badge tone="red">Stopped</Badge>}
+                {!s.active && <Badge tone="red">{t('Stopped')}</Badge>}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 {s.phone && <a className="text-bean-700 hover:underline" href={`tel:${s.phone.replace(/\s/g, '')}`}>📞 {s.phone}</a>}
@@ -83,15 +84,15 @@ export function Suppliers() {
               <div className="flex gap-3 pt-1 text-sm">
                 {s.active && (
                   <Link className="text-bean-700 hover:underline" to={`/purchase-orders/new?supplier=${s.id}`}>
-                    New order
+                    {t('New order')}
                   </Link>
                 )}
                 <Link className="text-bean-700 hover:underline" to={`/purchase-orders?supplier=${s.id}`}>
-                  Orders
+                  {t('Orders')}
                 </Link>
                 {admin && (
                   <button className="text-bean-700 hover:underline" onClick={() => setEditing(s)}>
-                    Edit
+                    {t('Edit')}
                   </button>
                 )}
               </div>
@@ -105,8 +106,8 @@ export function Suppliers() {
 }
 
 /** "@grovebeans" or "012 345 678" -> a link that opens Telegram. */
-export function telegramLink(t: string): string {
-  const v = t.trim()
+export function telegramLink(raw: string): string {
+  const v = raw.trim()
   if (/^\+?[\d\s-]+$/.test(v)) {
     const digits = v.replace(/[^\d]/g, '')
     // Cambodian numbers written locally (012...) become +855 12...
@@ -150,44 +151,44 @@ function SupplierForm({ initial, items, onClose }: { initial: Partial<Supplier>;
   }
 
   return (
-    <Modal title={s.id ? 'Edit supplier' : 'New supplier'} onClose={onClose}>
+    <Modal title={s.id ? t('Edit supplier') : t('New supplier')} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ErrorNote message={error} />
-        <Field label="Name">
-          <input className="input" value={s.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="Mondulkiri Coffee Co." maxLength={80} required />
+        <Field label={t('Name')}>
+          <input className="input" value={s.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder={t('Mondulkiri Coffee Co.')} maxLength={80} required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Contact person">
+          <Field label={t('Contact person')}>
             <input className="input" value={s.contactName ?? ''} onChange={(e) => set('contactName', e.target.value)} />
           </Field>
-          <Field label="Phone">
+          <Field label={t('Phone')}>
             <input className="input" type="tel" value={s.phone ?? ''} onChange={(e) => set('phone', e.target.value)} placeholder="012 345 678" />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Telegram" hint="@username or phone">
+          <Field label={t('Telegram')} hint={t('@username or phone')}>
             <input className="input" value={s.telegram ?? ''} onChange={(e) => set('telegram', e.target.value)} />
           </Field>
-          <Field label="Email">
+          <Field label={t('Email')}>
             <input className="input" type="email" value={s.email ?? ''} onChange={(e) => set('email', e.target.value)} />
           </Field>
         </div>
-        <Field label="Address">
+        <Field label={t('Address')}>
           <input className="input" value={s.address ?? ''} onChange={(e) => set('address', e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Payment terms">
-            <input className="input" value={s.paymentTerms ?? ''} onChange={(e) => set('paymentTerms', e.target.value)} placeholder="Cash on delivery" />
+          <Field label={t('Payment terms')}>
+            <input className="input" value={s.paymentTerms ?? ''} onChange={(e) => set('paymentTerms', e.target.value)} placeholder={t('Cash on delivery')} />
           </Field>
-          <Field label="Days to deliver">
+          <Field label={t('Days to deliver')}>
             <input className="input" type="number" min="0" value={s.leadTimeDays ?? ''} onChange={(e) => set('leadTimeDays', e.target.value)} />
           </Field>
         </div>
         <div>
-          <span className="label">Items they sell ({chosen.size})</span>
-          <input className="input mb-2" placeholder="Find item" value={find} onChange={(e) => setFind(e.target.value)} />
+          <span className="label">{t('Items they sell ({n})', { n: chosen.size })}</span>
+          <input className="input mb-2" placeholder={t('Find item')} value={find} onChange={(e) => setFind(e.target.value)} />
           <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border border-stone-200 p-2">
-            {shown.length === 0 && <div className="text-xs text-stone-400">No items. Add items first on the Items page.</div>}
+            {shown.length === 0 && <div className="text-xs text-stone-400">{t('No items. Add items first on the Items page.')}</div>}
             {shown.map((i) => (
               <label key={i.id} className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={chosen.has(i.id)} onChange={() => toggle(i.id)} />
@@ -197,16 +198,16 @@ function SupplierForm({ initial, items, onClose }: { initial: Partial<Supplier>;
             ))}
           </div>
         </div>
-        <Field label="Note">
-          <input className="input" value={s.note ?? ''} onChange={(e) => set('note', e.target.value)} placeholder="Order before 10 am for next-day delivery" />
+        <Field label={t('Note')}>
+          <input className="input" value={s.note ?? ''} onChange={(e) => set('note', e.target.value)} placeholder={t('Order before 10 am for next-day delivery')} />
         </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={s.active ?? true} onChange={(e) => set('active', e.target.checked)} />
-          In use (untick to stop; old orders are kept)
+          {t('In use (untick to stop; old orders are kept)')}
         </label>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn" disabled={busy}>Save</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>{t('Cancel')}</button>
+          <button className="btn" disabled={busy}>{t('Save')}</button>
         </div>
       </form>
     </Modal>

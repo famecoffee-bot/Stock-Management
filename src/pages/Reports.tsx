@@ -11,6 +11,7 @@ import { WASTE_REASONS, type Item, type Movement, type Sale, type StockLevel } f
 import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Empty, PageHeader } from '../components/ui'
 import { stockRows } from './Stock'
+import { t } from '../lib/i18n'
 
 // Phase 6: reports. Everything is added up from the movement ledger and the sales
 // records for the chosen days. Nothing is stored twice, so a report can never
@@ -18,12 +19,12 @@ import { stockRows } from './Stock'
 
 const MAX_ROWS = 5000
 const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'yesterday', label: 'Yesterday' },
-  { key: '7d', label: 'Last 7 days' },
-  { key: 'month', label: 'This month' },
-  { key: 'lastMonth', label: 'Last month' },
-  { key: 'custom', label: 'Choose days' },
+  { key: 'today', label: t('Today') },
+  { key: 'yesterday', label: t('Yesterday') },
+  { key: '7d', label: t('Last 7 days') },
+  { key: 'month', label: t('This month') },
+  { key: 'lastMonth', label: t('Last month') },
+  { key: 'custom', label: t('Choose days') },
 ]
 const reasonLabel = (r: string) => WASTE_REASONS.find((w) => w.value === r)?.label ?? r
 const signedUsd = (v: number) => `${v < 0 ? '−' : v > 0 ? '+' : ''}${formatUsd(Math.abs(v))}`
@@ -74,15 +75,15 @@ export function Reports() {
   const sales = useCollection<Sale>(COL.sales, saleQ, `s|${key}`, !current || !valid)
   const report = useMemo(() => buildReport(moves.rows, sales.rows), [moves.rows, sales.rows])
 
-  if (!current) return <Empty>Choose a branch first.</Empty>
-  const where_ = all ? 'All branches' : current.name
+  if (!current) return <Empty>{t('Choose a branch first.')}</Empty>
+  const where_ = all ? t('All branches') : current.name
   const file = (what: string) => `grove-stock-${what}-${all ? 'all' : current.code}-${range.from}-to-${range.to}.csv`
   const loading = moves.loading || sales.loading
   const r = report
 
   return (
     <>
-      <PageHeader title={`Reports · ${where_}`} subtitle={range.from === range.to ? range.from : `${range.from} to ${range.to}`} />
+      <PageHeader title={t('Reports · {where_}', { where_ })} subtitle={range.from === range.to ? range.from : t('{from} to {to}', { from: range.from, to: range.to })} />
       <div className="mb-4 flex flex-wrap items-end gap-2">
         {PERIODS.map((p) => (
           <button key={p.key} className={period === p.key ? 'btn' : 'btn-ghost'} onClick={() => setPeriod(p.key)}>
@@ -90,56 +91,56 @@ export function Reports() {
           </button>
         ))}
         {isAdmin(me) && branches.length > 1 && (
-          <select className="input ml-auto w-auto" aria-label="Which branches" value={scope} onChange={(e) => setScope(e.target.value as 'branch' | 'all')}>
-            <option value="branch">{current.name} only</option>
-            <option value="all">All branches</option>
+          <select className="input ml-auto w-auto" aria-label={t('Which branches')} value={scope} onChange={(e) => setScope(e.target.value as 'branch' | 'all')}>
+            <option value="branch">{current.name}{' '}{t('only')}</option>
+            <option value="all">{t('All branches')}</option>
           </select>
         )}
       </div>
       {period === 'custom' && (
         <div className="mb-4 flex flex-wrap gap-3">
           <label className="block">
-            <span className="label">From</span>
+            <span className="label">{t('From')}</span>
             <input className="input" type="date" value={custom.from} max={today} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} />
           </label>
           <label className="block">
-            <span className="label">To</span>
+            <span className="label">{t('To')}</span>
             <input className="input" type="date" value={custom.to} max={today} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} />
           </label>
-          {!valid && <p className="self-end text-sm text-red-700">"From" must be before "To".</p>}
+          {!valid && <p className="self-end text-sm text-red-700">{t('"From" must be before "To".')}</p>}
         </div>
       )}
       {(moves.error || sales.error) && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{moves.error || sales.error}</div>}
       {(moves.rows.length >= MAX_ROWS || sales.rows.length >= MAX_ROWS) && (
-        <div className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Too much data for one report. Choose fewer days so the totals are complete.</div>
+        <div className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{t('Too much data for one report. Choose fewer days so the totals are complete.')}</div>
       )}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Stat label="Sales" value={formatUsd(r.salesUsd)} note={`${r.cups} sold${r.salesWithoutPrice ? ` · ${r.salesWithoutPrice} without price` : ''}`} />
+        <Stat label={t('Sales')} value={formatUsd(r.salesUsd)} note={t('{cups} sold{v}', { cups: r.cups, v: r.salesWithoutPrice ? ' · ' + t('{n} without price', { n: r.salesWithoutPrice }) : '' })} />
         <Stat
-          label="Cost of ingredients"
+          label={t('Cost of ingredients')}
           value={formatUsd(r.costOfSalesUsd)}
-          note={r.costPct === null ? 'What the drinks sold used' : `${r.costPct}% of sales`}
+          note={r.costPct === null ? t('What the drinks sold used') : t('{costPct}% of sales', { costPct: r.costPct })}
           tone={r.costPct !== null && r.costPct > 35 ? 'bad' : undefined}
         />
-        <Stat label="Waste" value={formatUsd(r.wasteUsd)} note={r.salesUsd ? `${pct(r.wasteUsd, r.salesUsd)} of sales` : 'Thrown away'} tone={r.wasteUsd > 0 ? 'warn' : undefined} />
-        <Stat label="Count differences" value={signedUsd(r.varianceUsd)} note={r.varianceUsd < 0 ? 'Missing at counts' : 'From stock counts'} tone={r.varianceUsd < 0 ? 'bad' : undefined} />
-        <Stat label="Bought" value={formatUsd(r.receivedUsd)} note={formatKhr(r.receivedUsd, settings.usdToKhr)} />
+        <Stat label={t('Waste')} value={formatUsd(r.wasteUsd)} note={r.salesUsd ? t('{pct} of sales', { pct: pct(r.wasteUsd, r.salesUsd) }) : t('Thrown away')} tone={r.wasteUsd > 0 ? 'warn' : undefined} />
+        <Stat label={t('Count differences')} value={signedUsd(r.varianceUsd)} note={r.varianceUsd < 0 ? t('Missing at counts') : t('From stock counts')} tone={r.varianceUsd < 0 ? 'bad' : undefined} />
+        <Stat label={t('Bought')} value={formatUsd(r.receivedUsd)} note={formatKhr(r.receivedUsd, settings.usdToKhr)} />
       </div>
 
       {loading ? (
-        <Empty>Loading…</Empty>
+        <Empty>{t('Loading…')}</Empty>
       ) : moves.rows.length === 0 && sales.rows.length === 0 ? (
-        <Empty>Nothing happened in these days.</Empty>
+        <Empty>{t('Nothing happened in these days.')}</Empty>
       ) : (
         <>
           <Section
-            title="By day"
+            title={t('By day')}
             onExport={() =>
               download(
                 file('by-day'),
                 toCsv(
-                  ['Day', 'Sales USD', 'Cost of ingredients USD', 'Cost %', 'Waste USD', 'Count differences USD', 'Bought USD'],
+                  [t('Day'), t('Sales USD'), t('Cost of ingredients USD'), t('Cost %'), t('Waste USD'), t('Count differences USD'), t('Bought USD')],
                   r.days.map((d) => [d.day, d.salesUsd, d.costOfSalesUsd, d.salesUsd ? Math.round((d.costOfSalesUsd / d.salesUsd) * 1000) / 10 : '', d.wasteUsd, d.varianceUsd, d.receivedUsd]),
                 ),
               )
@@ -149,13 +150,13 @@ export function Reports() {
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
                 <tr>
-                  <th className="py-2">Day</th>
-                  <th className="py-2 text-right">Sales</th>
-                  <th className="py-2 text-right">Ingredients</th>
-                  <th className="hidden py-2 text-right sm:table-cell">Cost %</th>
-                  <th className="py-2 text-right">Waste</th>
-                  <th className="hidden py-2 text-right sm:table-cell">Counts</th>
-                  <th className="hidden py-2 text-right sm:table-cell">Bought</th>
+                  <th className="py-2">{t('Day')}</th>
+                  <th className="py-2 text-right">{t('Sales')}</th>
+                  <th className="py-2 text-right">{t('Ingredients')}</th>
+                  <th className="hidden py-2 text-right sm:table-cell">{t('Cost %')}</th>
+                  <th className="py-2 text-right">{t('Waste')}</th>
+                  <th className="hidden py-2 text-right sm:table-cell">{t('Counts')}</th>
+                  <th className="hidden py-2 text-right sm:table-cell">{t('Bought')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -175,13 +176,13 @@ export function Reports() {
           </Section>
 
           <Section
-            title="By item"
-            subtitle="Used = taken out by sales. Count differences: minus means missing."
+            title={t('By item')}
+            subtitle={t('Used = taken out by sales. Count differences: minus means missing.')}
             onExport={() =>
               download(
                 file('by-item'),
                 toCsv(
-                  ['Item', 'Unit', 'Used qty', 'Used USD', 'Wasted qty', 'Wasted USD', 'Count difference qty', 'Count difference USD', 'Received qty', 'Received USD'],
+                  [t('Item'), t('Unit'), t('Used qty'), t('Used USD'), t('Wasted qty'), t('Wasted USD'), t('Count difference qty'), t('Count difference USD'), t('Received qty'), t('Received USD')],
                   r.items.map((i) => [i.itemName, i.baseUnit, i.usedQty, i.usedUsd, i.wastedQty, i.wastedUsd, i.varianceQty, i.varianceUsd, i.receivedQty, i.receivedUsd]),
                 ),
               )
@@ -191,11 +192,11 @@ export function Reports() {
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
                   <tr>
-                    <th className="py-2">Item</th>
-                    <th className="py-2 text-right">Used</th>
-                    <th className="py-2 text-right">Wasted</th>
-                    <th className="py-2 text-right">Counts</th>
-                    <th className="hidden py-2 text-right sm:table-cell">Received</th>
+                    <th className="py-2">{t('Item')}</th>
+                    <th className="py-2 text-right">{t('Used')}</th>
+                    <th className="py-2 text-right">{t('Wasted')}</th>
+                    <th className="py-2 text-right">{t('Counts')}</th>
+                    <th className="hidden py-2 text-right sm:table-cell">{t('Received')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -232,7 +233,7 @@ export function Reports() {
           </Section>
 
           {r.wasteByReason.length > 0 && (
-            <Section title="Waste by reason">
+            <Section title={t('Waste by reason')}>
               <ul className="space-y-2 text-sm">
                 {r.wasteByReason.map((w) => (
                   <li key={w.reason}>
@@ -249,7 +250,7 @@ export function Reports() {
             </Section>
           )}
           {r.adjustUsd !== 0 && (
-            <p className="mb-5 text-xs text-stone-500">Manual adjustments in these days: {signedUsd(r.adjustUsd)} (not in the totals above).</p>
+            <p className="mb-5 text-xs text-stone-500">{t('Manual adjustments in these days:')}{' '}{signedUsd(r.adjustUsd)}{' '}{t('(not in the totals above).')}</p>
           )}
         </>
       )}
@@ -285,21 +286,21 @@ function StockValue() {
   const total = rows.reduce((s, x) => s + x.valueUsd, 0)
   return (
     <Section
-      title="Stock value now"
-      subtitle="What the stock on the shelves cost, at average cost."
+      title={t('Stock value now')}
+      subtitle={t('What the stock on the shelves cost, at average cost.')}
       onExport={() =>
         download(
           `grove-stock-value-${shopToday()}.csv`,
-          toCsv(['Branch', 'Code', 'Stock value USD', 'Stock value KHR', 'Items low or out', 'Items below zero'], rows.map((x) => [x.branch.name, x.branch.code, x.valueUsd, Math.round(x.valueUsd * settings.usdToKhr), x.low, x.negative])),
+          toCsv([t('Branch'), t('Code'), t('Stock value USD'), t('Stock value KHR'), t('Items low or out'), t('Items below zero')], rows.map((x) => [x.branch.name, x.branch.code, x.valueUsd, Math.round(x.valueUsd * settings.usdToKhr), x.low, x.negative])),
         )
       }
     >
       <table className="w-full text-sm">
         <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
           <tr>
-            <th className="py-2">Branch</th>
-            <th className="py-2 text-right">Value</th>
-            <th className="py-2 text-right">Low or out</th>
+            <th className="py-2">{t('Branch')}</th>
+            <th className="py-2 text-right">{t('Value')}</th>
+            <th className="py-2 text-right">{t('Low or out')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-100">
@@ -311,7 +312,7 @@ function StockValue() {
               </td>
               <td className="py-2 text-right">
                 {x.low}
-                {x.negative > 0 && <span className="block text-xs text-red-700">{x.negative} below zero</span>}
+                {x.negative > 0 && <span className="block text-xs text-red-700">{x.negative}{' '}{t('below zero')}</span>}
               </td>
             </tr>
           ))}
@@ -319,7 +320,7 @@ function StockValue() {
         {rows.length > 1 && (
           <tfoot>
             <tr className="border-t border-stone-200 font-semibold">
-              <td className="py-2">Total</td>
+              <td className="py-2">{t('Total')}</td>
               <td className="py-2 text-right">{formatUsd(total)}</td>
               <td />
             </tr>
@@ -336,9 +337,9 @@ function DayChart({ days }: { days: { day: string; salesUsd: number; costOfSales
   const max = Math.max(...days.map((d) => Math.max(d.salesUsd, d.costOfSalesUsd + d.wasteUsd)), 1)
   return (
     <div className="mb-4">
-      <div className="flex h-40 items-end gap-1" role="img" aria-label="Sales and ingredient cost per day">
+      <div className="flex h-40 items-end gap-1" role="img" aria-label={t('Sales and ingredient cost per day')}>
         {days.map((d) => (
-          <div key={d.day} className="flex h-full flex-1 items-end gap-0.5" title={`${d.day}: sales ${formatUsd(d.salesUsd)}, ingredients ${formatUsd(d.costOfSalesUsd)}, waste ${formatUsd(d.wasteUsd)}`}>
+          <div key={d.day} className="flex h-full flex-1 items-end gap-0.5" title={t('{day}: sales {usd}, ingredients {usd2}, waste {usd3}', { day: d.day, usd: formatUsd(d.salesUsd), usd2: formatUsd(d.costOfSalesUsd), usd3: formatUsd(d.wasteUsd) })}>
             <div className="flex-1 rounded-t bg-bean-500" style={{ height: `${(d.salesUsd / max) * 100}%` }} />
             <div className="flex flex-1 flex-col justify-end" style={{ height: `${((d.costOfSalesUsd + d.wasteUsd) / max) * 100}%` }}>
               <div className="rounded-t bg-amber-500" style={{ height: `${d.costOfSalesUsd + d.wasteUsd ? (d.wasteUsd / (d.costOfSalesUsd + d.wasteUsd)) * 100 : 0}%` }} />
@@ -352,9 +353,9 @@ function DayChart({ days }: { days: { day: string; salesUsd: number; costOfSales
         <span>{days[days.length - 1].day}</span>
       </div>
       <div className="mt-2 flex flex-wrap gap-4 text-xs text-stone-600">
-        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-bean-500" /> Sales</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-bean-100" /> Ingredients used</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-amber-500" /> Waste</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-bean-500" />{' '}{t('Sales')}</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-bean-100" />{' '}{t('Ingredients used')}</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-amber-500" />{' '}{t('Waste')}</span>
       </div>
     </div>
   )
@@ -370,7 +371,7 @@ function Section({ title, subtitle, onExport, children }: { title: string; subti
         </div>
         {onExport && (
           <button className="btn-ghost text-sm" onClick={onExport}>
-            Download for Excel
+            {t('Download for Excel')}
           </button>
         )}
       </div>

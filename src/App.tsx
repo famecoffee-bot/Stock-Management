@@ -20,17 +20,18 @@ import { CountSheet, Counts } from './pages/Counts'
 import { Expiry } from './pages/Expiry'
 import { Reports } from './pages/Reports'
 import { PurchaseOrderEdit, PurchaseOrderView, PurchaseOrders } from './pages/PurchaseOrders'
+import { LanguageProvider, t } from './lib/i18n'
 
 function Gate() {
   const s = useAuth()
-  if (s.status === 'loading') return <div className="p-8 text-center text-sm text-stone-500">Loading…</div>
+  if (s.status === 'loading') return <div className="p-8 text-center text-sm text-stone-500">{t('Loading…')}</div>
   if (s.status === 'signedOut') return <Login />
   if (s.status === 'noProfile') return <NoProfile />
   if (!s.profile.active)
     return (
       <div className="p-8 text-center text-sm text-stone-600">
-        Your access to the stock app is switched off. Ask an owner.{' '}
-        <button className="underline" onClick={logout}>Sign out</button>
+        {t('Your access to the stock app is switched off. Ask an owner.')}{' '}
+        <button className="underline" onClick={logout}>{t('Sign out')}</button>
       </div>
     )
   const admin = isAdmin(s.profile)
@@ -69,10 +70,12 @@ function Gate() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Gate />
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Gate />
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }

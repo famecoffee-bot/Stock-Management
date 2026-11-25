@@ -1,5 +1,6 @@
 import type { ChangeLine, ChangeType } from './api'
 import type { Item } from './types'
+import { t } from './i18n'
 
 // What a person types on the Receive / Waste / Adjust screens, and how it turns
 // into the base-unit numbers the server stores. Kept separate so it can be tested.
@@ -38,32 +39,32 @@ const num = (s: string) => (s.trim() === '' ? NaN : Number(s))
  * @returns the line to send, or an error sentence
  */
 export function toChangeLine(type: ChangeType, d: DraftLine, item: Item | undefined, currentQty = 0): ChangeLine | { error: string } {
-  if (!item) return { error: 'Choose an item on every line.' }
+  if (!item) return { error: t('Choose an item on every line.') }
   const per = d.inPacks ? item.unitsPerPurchase : 1
 
   if (type === 'adjust') {
     const actual = num(d.actual)
-    if (!Number.isFinite(actual) || actual < 0) return { error: `${item.name}: enter the real amount (0 or more).` }
+    if (!Number.isFinite(actual) || actual < 0) return { error: t('{name}: enter the real amount (0 or more).', { name: item.name }) }
     const qty = round(actual * per - currentQty)
-    if (qty === 0) return { error: `${item.name}: the amount is already ${currentQty} ${item.baseUnit}, nothing to change.` }
-    if (!d.reason.trim()) return { error: `${item.name}: write why you are adjusting.` }
+    if (qty === 0) return { error: t('{name}: the amount is already {currentQty} {baseUnit}, nothing to change.', { name: item.name, currentQty, baseUnit: item.baseUnit }) }
+    if (!d.reason.trim()) return { error: t('{name}: write why you are adjusting.', { name: item.name }) }
     return { itemId: item.id, qty, reason: d.reason.trim() }
   }
 
   const q = num(d.qty)
-  if (!Number.isFinite(q) || q <= 0) return { error: `${item.name}: enter a quantity more than 0.` }
+  if (!Number.isFinite(q) || q <= 0) return { error: t('{name}: enter a quantity more than 0.', { name: item.name }) }
   const qty = round(q * per)
 
   if (type === 'receive') {
     const packCost = num(d.packCostUsd)
-    if (!Number.isFinite(packCost) || packCost < 0) return { error: `${item.name}: enter the cost (0 if free).` }
-    if (item.perishable && !d.expiryDate) return { error: `${item.name}: enter the expiry date.` }
+    if (!Number.isFinite(packCost) || packCost < 0) return { error: t('{name}: enter the cost (0 if free).', { name: item.name }) }
+    if (item.perishable && !d.expiryDate) return { error: t('{name}: enter the expiry date.', { name: item.name }) }
     const line: ChangeLine = { itemId: item.id, qty, unitCostUsd: packCost / item.unitsPerPurchase }
     if (d.expiryDate) line.expiryDate = d.expiryDate
     return line
   }
 
-  if (!d.reason) return { error: `${item.name}: choose a reason.` }
+  if (!d.reason) return { error: t('{name}: choose a reason.', { name: item.name }) }
   return { itemId: item.id, qty, reason: d.reason }
 }
 

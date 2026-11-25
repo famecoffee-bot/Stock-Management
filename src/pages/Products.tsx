@@ -9,6 +9,7 @@ import { costPercent, recipeCost } from '../lib/sales'
 import { PRODUCT_CATEGORIES, type Item, type Product, type ProductSize, type RecipeLine } from '../lib/types'
 import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from '../components/ui'
+import { t } from '../lib/i18n'
 
 // The menu: what you sell, in which sizes, and the recipe for one cup of each size.
 // A recipe is what makes "sold 10 Iced Latte L" take beans, milk and cups out of stock.
@@ -32,12 +33,12 @@ export function Products() {
   return (
     <>
       <PageHeader
-        title="Menu and recipes"
-        subtitle="What you sell, and what one cup of each size uses"
+        title={t('Menu and recipes')}
+        subtitle={t('What you sell, and what one cup of each size uses')}
         action={
           admin && (
             <button className="btn" onClick={() => setEditing({ active: true, category: PRODUCT_CATEGORIES[0], sizes: SIZE_PRESETS.sml(), recipes: {} })}>
-              + Add product
+              {t('+ Add product')}
             </button>
           )
         }
@@ -45,22 +46,22 @@ export function Products() {
       <ErrorNote message={error} />
       {missing > 0 && (
         <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {missing} product{missing === 1 ? ' has' : 's have'} a size without a recipe. Sales of those can't take stock out until the recipe is added.
+          {t('{missing} product(s) have a size without a recipe. Sales of those can\'t take stock out until the recipe is added.', { missing })}
         </p>
       )}
       <div className="mb-3 flex flex-wrap gap-2">
-        <input className="input max-w-xs" placeholder="Search menu" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input max-w-xs" placeholder={t('Search menu')} value={search} onChange={(e) => setSearch(e.target.value)} />
         <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-          Show stopped products
+          {t('Show stopped products')}
         </label>
       </div>
       {!loading && list.length === 0 ? (
         <Empty>
-          {rows.length === 0 ? 'No menu yet. Add your drinks and food, then their recipes.' : 'Nothing matches your search.'}
+          {rows.length === 0 ? t('No menu yet. Add your drinks and food, then their recipes.') : t('Nothing matches your search.')}
           {items.rows.length === 0 && (
             <>
-              {' '}First add your ingredients on the <Link className="underline" to="/items">Items</Link> page.
+              {' '}{t('First add your ingredients on the')}{' '}<Link className="underline" to="/items">{t('Items')}</Link>{' '}{t('page.')}
             </>
           )}
         </Empty>
@@ -69,12 +70,12 @@ export function Products() {
           <table className="w-full min-w-[640px]">
             <thead className="bg-stone-50">
               <tr>
-                <th className="th">Product</th>
-                <th className="th">Size</th>
-                <th className="th">Recipe (one cup)</th>
-                <th className="th text-right">Cost</th>
-                <th className="th text-right">Price</th>
-                <th className="th text-right">Cost %</th>
+                <th className="th">{t('Product')}</th>
+                <th className="th">{t('Size')}</th>
+                <th className="th">{t('Recipe (one cup)')}</th>
+                <th className="th text-right">{t('Cost')}</th>
+                <th className="th text-right">{t('Price')}</th>
+                <th className="th text-right">{t('Cost %')}</th>
                 <th className="th"></th>
               </tr>
             </thead>
@@ -90,15 +91,15 @@ export function Products() {
                         {i === 0 && (
                           <>
                             <div className="font-medium">{p.name}</div>
-                            <div className="text-xs text-stone-400">{p.category}{p.groveName && p.groveName !== p.name ? ` · POS name: ${p.groveName}` : ''}</div>
-                            {!p.active && <Badge tone="red">Stopped</Badge>}
+                            <div className="text-xs text-stone-400">{p.category}{p.groveName && p.groveName !== p.name ? t(' · POS name: {groveName}', { groveName: p.groveName }) : ''}</div>
+                            {!p.active && <Badge tone="red">{t('Stopped')}</Badge>}
                           </>
                         )}
                       </td>
                       <td className="td">{p.sizes.length > 1 ? s.label : '—'}</td>
                       <td className="td text-xs text-stone-600">
                         {recipe.length === 0 ? (
-                          <Badge tone="amber">No recipe</Badge>
+                          <Badge tone="amber">{t('No recipe')}</Badge>
                         ) : (
                           recipe.map((r) => {
                             const it = itemById.get(r.itemId)
@@ -117,7 +118,7 @@ export function Products() {
                       <td className="td text-right">
                         {i === 0 && admin && (
                           <button className="text-sm text-bean-700 hover:underline" onClick={() => setEditing(p)}>
-                            Edit
+                            {t('Edit')}
                           </button>
                         )}
                       </td>
@@ -130,7 +131,7 @@ export function Products() {
         </div>
       )}
       <p className="mt-3 text-xs text-stone-400">
-        Cost uses each ingredient's last purchase price. Most coffee shops aim for a cost of 25 to 35% of the selling price.
+        {t('Cost uses each ingredient\'s last purchase price. Most coffee shops aim for a cost of 25 to 35% of the selling price.')}
       </p>
       {editing && <ProductForm initial={editing} items={items.rows} onClose={() => setEditing(null)} />}
     </>
@@ -138,11 +139,11 @@ export function Products() {
 }
 
 const SIZE_PRESETS = {
-  one: (): ProductSize[] => [{ key: 'one', label: 'One size', priceUsd: null }],
+  one: (): ProductSize[] => [{ key: 'one', label: t('One size'), priceUsd: null }],
   sml: (): ProductSize[] => [
-    { key: 'S', label: 'Small', priceUsd: null },
-    { key: 'M', label: 'Medium', priceUsd: null },
-    { key: 'L', label: 'Large', priceUsd: null },
+    { key: 'S', label: t('Small'), priceUsd: null },
+    { key: 'M', label: t('Medium'), priceUsd: null },
+    { key: 'L', label: t('Large'), priceUsd: null },
   ],
 }
 
@@ -187,9 +188,9 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
     setError(null)
     const cleanSizes: ProductSize[] = []
     for (const s of sizes) {
-      if (!s.label.trim()) return setError('Every size needs a name.')
+      if (!s.label.trim()) return setError(t('Every size needs a name.'))
       const price = s.price.trim() === '' ? null : Number(s.price)
-      if (price !== null && !(price >= 0)) return setError(`${s.label}: the price must be a number.`)
+      if (price !== null && !(price >= 0)) return setError(t('{label}: the price must be a number.', { label: s.label }))
       cleanSizes.push({ key: s.key, label: s.label.trim(), priceUsd: price })
     }
     const cleanRecipes: Record<string, RecipeLine[]> = {}
@@ -198,10 +199,10 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
       for (const l of recipes[s.key] ?? []) {
         if (!l.itemId && !l.qty) continue
         const it = itemById.get(l.itemId)
-        if (!it) return setError(`${s.label}: choose an ingredient on every line, or remove the empty line.`)
+        if (!it) return setError(t('{label}: choose an ingredient on every line, or remove the empty line.', { label: s.label }))
         const q = Number(l.qty)
-        if (!(q > 0)) return setError(`${s.label}: ${it.name} needs an amount more than 0.`)
-        if (out.some((o) => o.itemId === it.id)) return setError(`${s.label}: ${it.name} is listed twice.`)
+        if (!(q > 0)) return setError(t('{label}: {name} needs an amount more than 0.', { label: s.label, name: it.name }))
+        if (out.some((o) => o.itemId === it.id)) return setError(t('{label}: {name} is listed twice.', { label: s.label, name: it.name }))
         out.push({ itemId: it.id, qty: q })
       }
       if (out.length) cleanRecipes[s.key] = out
@@ -231,30 +232,30 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
   const pct = costPercent(draftCost, tabPrice)
 
   return (
-    <Modal title={p.id ? `Edit ${p.name}` : 'New product'} onClose={onClose}>
+    <Modal title={p.id ? t('Edit {name}', { name: p.name }) : t('New product')} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
         <ErrorNote message={error} />
-        <Field label="Name">
-          <input className="input" value={p.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder="Iced Latte" maxLength={80} required />
+        <Field label={t('Name')}>
+          <input className="input" value={p.name ?? ''} onChange={(e) => set('name', e.target.value)} placeholder={t('Iced Latte')} maxLength={80} required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Category">
+          <Field label={t('Category')}>
             <select className="input" value={p.category} onChange={(e) => set('category', e.target.value)}>
               {PRODUCT_CATEGORIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </Field>
-          <Field label="Name on the POS (optional)" hint="If grove-system-kh writes it differently">
+          <Field label={t('Name on the POS (optional)')} hint={t('If grove-system-kh writes it differently')}>
             <input className="input" value={p.groveName ?? ''} onChange={(e) => set('groveName', e.target.value)} />
           </Field>
         </div>
 
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="label">Sizes and prices (USD)</span>
+            <span className="label">{t('Sizes and prices (USD)')}</span>
             <span className="flex gap-2 text-xs">
-              <button type="button" className="text-bean-700 underline" onClick={() => preset('one')}>One size</button>
+              <button type="button" className="text-bean-700 underline" onClick={() => preset('one')}>{t('One size')}</button>
               <button type="button" className="text-bean-700 underline" onClick={() => preset('sml')}>S / M / L</button>
             </span>
           </div>
@@ -262,16 +263,16 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
             {sizes.map((s, i) => (
               <div key={s.key} className="grid grid-cols-[3rem_1fr_7rem] items-center gap-2">
                 <span className="text-center text-xs font-semibold text-stone-400">{s.key}</span>
-                <input className="input" value={s.label} onChange={(e) => setSizes((ss) => ss.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} aria-label="Size name" />
+                <input className="input" value={s.label} onChange={(e) => setSizes((ss) => ss.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} aria-label={t('Size name')} />
                 <input
                   className="input"
                   type="number"
                   min="0"
                   step="0.05"
-                  placeholder="Price"
+                  placeholder={t('Price')}
                   value={s.price}
                   onChange={(e) => setSizes((ss) => ss.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))}
-                  aria-label={`${s.label} price`}
+                  aria-label={t('{label} price', { label: s.label })}
                 />
               </div>
             ))}
@@ -280,7 +281,7 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
 
         <div className="rounded-xl border border-stone-200 p-3">
           <div className="mb-2 flex flex-wrap items-center gap-1">
-            <span className="label mr-2 mb-0">Recipe for one</span>
+            <span className="label mr-2 mb-0">{t('Recipe for one')}</span>
             {sizes.map((s) => (
               <button key={s.key} type="button" className={s.key === tab ? 'btn px-2 py-1' : 'btn-ghost px-2 py-1'} onClick={() => setTab(s.key)}>
                 {s.label}
@@ -290,7 +291,7 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
           </div>
           {lines.length === 0 && sizes.length > 1 && sizes.some((s) => s.key !== tab && (recipes[s.key] ?? []).length) && (
             <div className="mb-2 text-xs text-stone-500">
-              Start from:{' '}
+              {t('Start from:')}{' '}
               {sizes
                 .filter((s) => s.key !== tab && (recipes[s.key] ?? []).length)
                 .map((s) => (
@@ -309,9 +310,9 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
                     className="input"
                     value={l.itemId}
                     onChange={(e) => setLines((ls) => ls.map((x) => (x.key === l.key ? { ...x, itemId: e.target.value } : x)))}
-                    aria-label="Ingredient"
+                    aria-label={t('Ingredient')}
                   >
-                    <option value="">Ingredient…</option>
+                    <option value="">{t('Ingredient…')}</option>
                     {active.map((i) => (
                       <option key={i.id} value={i.id} disabled={lines.some((x) => x.key !== l.key && x.itemId === i.id)}>
                         {i.name}
@@ -325,10 +326,10 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
                     step="any"
                     value={l.qty}
                     onChange={(e) => setLines((ls) => ls.map((x) => (x.key === l.key ? { ...x, qty: e.target.value } : x)))}
-                    aria-label="Amount"
+                    aria-label={t('Amount')}
                   />
                   <span className="text-xs text-stone-500">{it?.baseUnit ?? ''}</span>
-                  <button type="button" className="text-lg text-stone-400 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} aria-label="Remove ingredient">
+                  <button type="button" className="text-lg text-stone-400 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} aria-label={t('Remove ingredient')}>
                     ×
                   </button>
                 </div>
@@ -337,22 +338,22 @@ function ProductForm({ initial, items, onClose }: { initial: Partial<Product>; i
           </div>
           <div className="mt-2 flex items-center justify-between">
             <button type="button" className="text-sm text-bean-700 hover:underline" onClick={() => setLines((ls) => [...ls, { key: `r${++n}`, itemId: '', qty: '' }])}>
-              + Add ingredient
+              {t('+ Add ingredient')}
             </button>
             <span className="text-xs text-stone-500">
-              Cost of one: <b>${draftCost.toFixed(3)}</b>
-              {pct !== null && draftCost > 0 && ` · ${pct}% of price`}
+              {t('Cost of one:')}{' '}<b>${draftCost.toFixed(3)}</b>
+              {pct !== null && draftCost > 0 && t(' · {pct}% of price', { pct })}
             </span>
           </div>
         </div>
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={p.active ?? true} onChange={(e) => set('active', e.target.checked)} />
-          On the menu (untick to stop; past sales are kept)
+          {t('On the menu (untick to stop; past sales are kept)')}
         </label>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn" disabled={busy}>Save</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>{t('Cancel')}</button>
+          <button className="btn" disabled={busy}>{t('Save')}</button>
         </div>
       </form>
     </Modal>
