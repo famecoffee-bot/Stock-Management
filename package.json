@@ -15,7 +15,8 @@
     "dev:local": "VITE_EMULATORS=1 vite",
     "build:trial": "tsc -b && vite build --mode trial",
     "deploy:trial": "npm run build:trial && firebase deploy --config firebase.trial.json --project trial --only hosting,functions:stock,firestore:stock",
-    "trial:data": "node scripts/load-practice-data.mjs"
+    "trial:data": "node scripts/load-practice-data.mjs",
+    "trial:warehouse": "node scripts/load-practice-warehouse.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

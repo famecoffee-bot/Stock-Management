@@ -4,10 +4,10 @@
 // Everything is in the stock app's own "stock" database.
 import { FieldValue } from 'firebase-admin/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
-import { checkCountEntries, countResult } from './lib/counts.js'
+import { checkCountEntries, checkPeriod, countResult } from './lib/counts.js'
 import { ledger } from './stock-api.js'
 
-const C = { counts: 'inv_counts', items: 'inv_items' }
+const C = { counts: 'inv_counts', items: 'inv_items', branches: 'inv_branches' }
 const OPEN = ['open', 'submitted']
 const MAX_LINES = 400
 
@@ -27,6 +27,8 @@ export function countsApi(db) {
     const me = await profileOf(req.auth)
     const { branchId } = req.data ?? {}
     const category = typeof req.data?.category === 'string' && req.data.category ? req.data.category.slice(0, 60) : null
+    const period = checkPeriod(req.data?.period)
+    if (period === undefined) throw new HttpsError('invalid-argument', 'Unknown kind of count.')
     need(me, branchId, 'staff')
     const ref = db.collection(C.counts).doc()
 
@@ -54,6 +56,7 @@ export function countsApi(db) {
       tx.set(ref, {
         branchId,
         status: 'open',
+        period,
         category,
         note: cleanNote(req.data?.note) || null,
         lines,
@@ -114,6 +117,13 @@ export function countsApi(db) {
         )
         write(tx, { branchId: count.branchId, type: 'count', planned, items, stock, me, note: 'Stock count', refType: 'count', refId: ref.id })
       }
+      // Remember on the branch (or warehouse) when its last weekly / monthly count was approved,
+      // so every screen can show "weekly count due" without reading all the counts.
+      const period = count.period ?? 'spot'
+      tx.update(db.collection(C.branches).doc(count.branchId), {
+        [`lastCounts.${period}`]: FieldValue.serverTimestamp(),
+        ...(period === 'monthly' ? { 'lastCounts.weekly': FieldValue.serverTimestamp() } : {}),
+      })
       tx.update(ref, {
         status: 'approved',
         lines: result.lines,

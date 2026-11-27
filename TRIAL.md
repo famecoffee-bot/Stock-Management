@@ -44,4 +44,15 @@ npm run trial:data -- <test-project-id>
 Logins (password `practice123`): owner@grove.kh (owner), vanna@grove.kh (manager at
 Riverside), dara@grove.kh (staff at Riverside).
 
+### Add the main warehouse (ស្តុកធំ) practice data
+
+After the normal practice data, with the same key:
+
+```
+npm run trial:warehouse -- <test-project-id>
+```
+
+It adds a "Main stock" warehouse, links both branches to it, two daily orders waiting to be
+sent, and a stock keeper login: sophea@grove.kh (password `practice123`).
+
 When you are done testing, you can delete the whole test project in the Firebase console.

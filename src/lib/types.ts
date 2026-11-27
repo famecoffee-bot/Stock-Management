@@ -4,6 +4,8 @@ import { t } from './i18n'
 export type Role = 'owner' | 'admin' | 'member'
 export type BranchRole = 'manager' | 'staff' | 'viewer'
 
+export type LocationKind = 'branch' | 'warehouse'
+
 export interface Branch {
   id: string
   name: string
@@ -11,8 +13,16 @@ export interface Branch {
   address?: string
   /** Branch name as written in grove-system-kh sales (`branch` field). Used to link sales in phase 7. */
   groveBranch?: string
+  /** "warehouse" = the main stock (ស្តុកធំ) that supplies the branches. Missing = a normal branch. */
+  kind?: LocationKind
+  /** Branches only: the main warehouse its daily orders go to. */
+  supplyFromId?: string
+  /** When the last weekly / monthly / spot count was approved here. Written by the server. */
+  lastCounts?: Partial<Record<CountPeriod, { toDate(): Date }>>
   active: boolean
 }
+
+export const isWarehouse = (b: Pick<Branch, 'kind'> | null | undefined) => b?.kind === 'warehouse'
 
 export interface InvUser {
   id: string // = Firebase Auth uid
@@ -115,6 +125,9 @@ export interface Transfer {
   sentAt?: { toDate(): Date }
   receivedByName?: string
   receivedAt?: { toDate(): Date }
+  /** Set when the transfer was made from a daily order. */
+  requestId?: string
+  requestNumber?: string
 }
 
 export const WASTE_REASONS: { value: string; label: string }[] = [
@@ -286,10 +299,15 @@ export interface CountLine {
   varianceUsd?: number | null
 }
 
+/** Weekly: the costly items (or everything). Monthly: the full stock take. Spot: an extra check. */
+export type CountPeriod = 'weekly' | 'monthly' | 'spot'
+
 export interface StockCount {
   id: string
   branchId: string
   status: 'open' | 'submitted' | 'approved' | 'cancelled'
+  /** Missing on counts made before weekly/monthly existed: treat as "spot". */
+  period?: CountPeriod
   category: string | null
   note: string | null
   lines: CountLine[]
@@ -311,5 +329,48 @@ export interface Batch {
   itemName: string
   qtyReceived: number
   expiryDate: string
+  receivedAt?: { toDate(): Date }
+}
+
+// ---- Phase 7a: daily orders from a branch to the main warehouse
+
+export type RequestStatus = 'requested' | 'sent' | 'received' | 'rejected' | 'cancelled'
+
+export interface RequestLine {
+  itemId: string
+  itemName: string
+  category: string
+  baseUnit: BaseUnit
+  purchaseUnit: string
+  unitsPerPurchase: number
+  /** Asked for, in base units. */
+  qty: number
+  /** What the warehouse sent (base units); null until sent. */
+  sentQty: number | null
+}
+
+export interface StockRequest {
+  id: string
+  number: string
+  branchId: string
+  branchName: string
+  warehouseId: string
+  warehouseName: string
+  /** YYYY-MM-DD: the day the branch needs it. */
+  neededDate: string
+  status: RequestStatus
+  note: string | null
+  lines: RequestLine[]
+  changed?: boolean
+  short?: boolean
+  sendNote?: string | null
+  transferId: string | null
+  closeReason?: string | null
+  closedByName?: string
+  createdByName: string
+  createdAt?: { toDate(): Date }
+  sentByName?: string | null
+  sentAt?: { toDate(): Date }
+  receivedByName?: string
   receivedAt?: { toDate(): Date }
 }

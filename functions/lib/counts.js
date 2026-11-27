@@ -9,6 +9,16 @@
 //    Applying the DIFFERENCE (not overwriting the number) keeps any sale or delivery that
 //    happened while people were counting.
 
+// What kind of count it is. Weekly: the costly, fast-moving items (or everything).
+// Monthly: the full stock take. Spot: an extra check any time.
+export const COUNT_PERIODS = ['weekly', 'monthly', 'spot']
+
+/** 'weekly' | 'monthly' | 'spot'; missing = 'spot'; anything else = undefined (refused). */
+export function checkPeriod(p) {
+  if (p === undefined || p === null || p === '') return 'spot'
+  return COUNT_PERIODS.includes(p) ? p : undefined
+}
+
 const round = (v, d = 4) => Math.round(v * 10 ** d) / 10 ** d
 export const MAX_COUNT = 10_000_000
 

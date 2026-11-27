@@ -106,6 +106,7 @@ export const startCount = call<{ ok: true; id: string }>('invStartCount') as (d:
   branchId: string
   /** Count one category only; leave out to count every active item. */
   category?: string
+  period?: 'weekly' | 'monthly' | 'spot'
   note?: string
 }) => Promise<{ ok: true; id: string }>
 
@@ -121,3 +122,28 @@ export const approveCount = call<{ ok: true; counted: number; differences: numbe
 ) as (d: { id: string }) => Promise<{ ok: true; counted: number; differences: number; lossUsd: number; gainUsd: number; netUsd: number }>
 
 export const cancelCount = call<{ ok: true }>('invCancelCount') as (d: { id: string }) => Promise<{ ok: true }>
+
+// ---- Phase 7a: daily orders to the main warehouse (functions/requests-api.js)
+
+export const createRequest = call<{ ok: true; id: string; number: string }>('invCreateRequest') as (d: {
+  branchId: string
+  warehouseId: string
+  /** YYYY-MM-DD */
+  neededDate: string
+  note?: string
+  /** In base units. */
+  lines: { itemId: string; qty: number }[]
+}) => Promise<{ ok: true; id: string; number: string }>
+
+export const sendRequest = call<{ ok: true; transferId: string; changed: boolean }>('invSendRequest') as (d: {
+  id: string
+  /** itemId -> base units to send (0 = not this item). Missing = what was asked. */
+  send: Record<string, number>
+  note?: string
+}) => Promise<{ ok: true; transferId: string; changed: boolean }>
+
+export const requestAction = call<{ ok: true; status: string }>('invRequestAction') as (d: {
+  id: string
+  action: 'cancel' | 'reject'
+  reason?: string
+}) => Promise<{ ok: true; status: string }>

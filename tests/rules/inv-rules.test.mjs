@@ -40,6 +40,9 @@ beforeEach(async () => {
     await setDoc(doc(db, 'inv_counters/purchaseOrders'), { next: 3 })
     await setDoc(doc(db, 'inv_products/latte'), product)
     await setDoc(doc(db, 'inv_sales/s1'), { branchId: 'b1', date: '2026-11-24', status: 'done', lines: [], usage: [] })
+    await setDoc(doc(db, 'inv_requests/r1'), { branchId: 'b1', warehouseId: 'wh', status: 'requested', lines: [] })
+    await setDoc(doc(db, 'inv_requests/r2'), { branchId: 'b2', warehouseId: 'wh', status: 'requested', lines: [] })
+    await setDoc(doc(db, 'inv_requests/r3'), { branchId: 'b2', warehouseId: 'b1', status: 'requested', lines: [] })
     await setDoc(doc(db, 'inv_sales/s2'), { branchId: 'b2', date: '2026-11-24', status: 'done', lines: [], usage: [] })
   })
 })
@@ -200,4 +203,24 @@ test('counts and expiry lots: a branch reads its own; nobody writes them from th
   await assertFails(getDoc(doc(db, 'inv_batches/l2')))
   await assertSucceeds(getDocs(query(collection(db, 'inv_batches'), where('branchId', '==', 'b1'))))
   await assertFails(updateDoc(doc(as('owner1', 'owner@x.kh'), 'inv_batches/l1'), { qtyReceived: 0 }))
+})
+
+test('daily orders: the branch and the warehouse read them, others do not; nobody writes them from the app', async () => {
+  const db = as('staff1', 'member@x.kh')
+  await assertSucceeds(getDoc(doc(db, 'inv_requests/r1')), 'my branch asked')
+  await assertSucceeds(getDoc(doc(db, 'inv_requests/r3')), 'my location is the warehouse')
+  await assertFails(getDoc(doc(db, 'inv_requests/r2')))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_requests'), where('branchId', '==', 'b1'))))
+  await assertSucceeds(getDocs(query(collection(db, 'inv_requests'), where('warehouseId', '==', 'b1'))))
+  await assertFails(getDocs(query(collection(db, 'inv_requests'), where('branchId', '==', 'b2'))))
+  await assertFails(updateDoc(doc(db, 'inv_requests/r1'), { status: 'sent' }))
+  await assertFails(setDoc(doc(as('owner1', 'owner@x.kh'), 'inv_requests/fake'), { branchId: 'b1', warehouseId: 'wh', status: 'requested' }))
+  await assertSucceeds(getDocs(query(collection(as('admin1', 'admin@x.kh'), 'inv_requests'))))
+})
+
+test('admins mark a location as the main warehouse and choose where a branch orders from', async () => {
+  const wh = { name: 'Main stock', code: 'WH', kind: 'warehouse', active: true }
+  await assertSucceeds(setDoc(doc(as('admin1', 'admin@x.kh'), 'inv_branches/wh'), wh))
+  await assertSucceeds(setDoc(doc(as('admin1', 'admin@x.kh'), 'inv_branches/b1'), { name: 'Riverside', code: 'RV', kind: 'branch', supplyFromId: 'wh', active: true }))
+  await assertFails(setDoc(doc(as('staff1', 'member@x.kh'), 'inv_branches/wh2'), wh))
 })

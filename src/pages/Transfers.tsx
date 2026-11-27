@@ -91,6 +91,7 @@ function TransferCard({ tr, other, children }: { tr: Transfer; other: string; ch
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="font-medium">
+            {tr.requestNumber && <span className="mr-1 text-xs font-semibold text-bean-500">{tr.requestNumber}</span>}
             {other}{' '}
             {tr.status === 'sent' ? <Badge tone="amber">{t('On the way')}</Badge> : tr.status === 'received' ? <Badge tone="green">{t('Received')}</Badge> : <Badge>{t('Cancelled')}</Badge>}
             {tr.short && <Badge tone="red">{t('Short')}</Badge>}

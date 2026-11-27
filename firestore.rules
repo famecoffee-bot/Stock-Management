@@ -144,7 +144,15 @@ service cloud.firestore {
       allow read: if invUser() && invAtBranch(resource.data.branchId, 'viewer');
       allow write: if false;
     }
-    // ---- running numbers (PO-0001, ...): only Cloud Functions touch these
+    // ---- Phase 7a: daily orders from a branch to the main warehouse. The branch and the warehouse
+    //      both read them; created, sent and closed ONLY by Cloud Functions (functions/requests-api.js),
+    //      because sending one moves stock.
+    match /inv_requests/{id} {
+      allow read: if invUser()
+        && (invAtBranch(resource.data.branchId, 'viewer') || invAtBranch(resource.data.warehouseId, 'viewer'));
+      allow write: if false;
+    }
+    // ---- running numbers (PO-0001, REQ-0001, ...): only Cloud Functions touch these
     match /inv_counters/{id} {
       allow read, write: if false;
     }
