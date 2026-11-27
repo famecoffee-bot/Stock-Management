@@ -4,6 +4,7 @@ import { isAdmin } from '../lib/permissions'
 import { useBranch } from '../lib/branch'
 import { isTrial } from '../lib/firebase'
 import { LanguageSwitch, t } from '../lib/i18n'
+import { isWarehouse } from '../lib/types'
 
 const NAV = [
   { to: '/', label: t('Dashboard'), admin: false },
@@ -12,6 +13,7 @@ const NAV = [
   { to: '/sales', label: t('Sales'), admin: false },
   { to: '/counts', label: t('Counts'), admin: false },
   { to: '/expiry', label: t('Expiry'), admin: false },
+  { to: '/requests', label: t('Daily orders'), admin: false },
   { to: '/purchase-orders', label: t('Orders'), admin: false },
   { to: '/transfers', label: t('Transfers'), admin: false },
   { to: '/history', label: t('History'), admin: false },
@@ -49,7 +51,7 @@ export function Layout() {
               >
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.code} · {b.name}
+                    {b.code} · {b.name}{isWarehouse(b) ? ` · ${t('Main warehouse')}` : ''}
                   </option>
                 ))}
               </select>

@@ -8,7 +8,8 @@ import { useBranch } from '../lib/branch'
 import { canAtBranch } from '../lib/permissions'
 import { approveCount, cancelCount, saveCount, startCount } from '../lib/api'
 import { baseToEntry, bigDifference, entryToBase, previewTotals, type CountEntry } from '../lib/counts'
-import type { CountLine, StockCount } from '../lib/types'
+import { isWarehouse, type CountLine, type CountPeriod, type StockCount } from '../lib/types'
+import { CountDueBadge } from './Branches'
 import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Badge, Empty, ErrorNote, PageHeader, friendlyError } from '../components/ui'
 import { dateLocale, t } from '../lib/i18n'
@@ -27,6 +28,12 @@ const STATUS: Record<StockCount['status'], { label: string; tone: 'stone' | 'gre
   cancelled: { label: t('Cancelled'), tone: 'stone' },
 }
 
+export const PERIOD_LABEL: Record<CountPeriod, string> = {
+  weekly: t('Weekly count'),
+  monthly: t('Monthly count'),
+  spot: t('Extra check'),
+}
+
 /** Counts at a branch, newest first (also used by the dashboard). */
 export function useCounts(branchId: string | undefined, max = 30) {
   return useCollection<StockCount>(COL.counts, [where('branchId', '==', branchId ?? ''), orderBy('createdAt', 'desc'), limit(max)], `${branchId}-${max}`, !branchId)
@@ -36,9 +43,10 @@ export function Counts() {
   const me = useProfile()
   const settings = useSettings()
   const nav = useNavigate()
-  const { current } = useBranch()
+  const { current, branches } = useBranch()
   const counts = useCounts(current?.id)
   const [category, setCategory] = useState('')
+  const [period, setPeriod] = useState<CountPeriod>('weekly')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,7 +58,7 @@ export function Counts() {
     setBusy(true)
     setError(null)
     try {
-      const r = await startCount({ branchId: current!.id, ...(category ? { category } : {}) })
+      const r = await startCount({ branchId: current!.id, period, ...(category && period !== 'monthly' ? { category } : {}) })
       nav(`/counts/${r.id}`)
     } catch (e) {
       setError(friendlyError(e))
@@ -62,6 +70,24 @@ export function Counts() {
     <>
       <PageHeader title={t('Stock counts · {name}', { name: current.name })} subtitle={t('Count what is really on the shelf. The difference from the app is your variance.')} />
       <ErrorNote message={error} />
+      <div className="card mb-5">
+        <div className="mb-2 font-semibold text-bean-900">{t('Count schedule')}</div>
+        <p className="mb-2 text-xs text-stone-500">{t('Every branch and the main warehouse: a weekly count every 7 days, and a full monthly count once each month.')}</p>
+        <ul className="divide-y divide-stone-100 text-sm">
+          {[...branches].sort((a, b) => Number(isWarehouse(b)) - Number(isWarehouse(a))).map((b) => (
+            <li key={b.id} className={`flex flex-wrap items-center justify-between gap-2 py-1.5 ${b.id === current.id ? 'font-medium' : ''}`}>
+              <span>
+                {b.code} · {b.name}
+                {isWarehouse(b) && <span className="ml-1 text-xs text-amber-700">({t('Main warehouse')})</span>}
+              </span>
+              <span className="flex gap-1">
+                <CountDueBadge b={b} period="weekly" />
+                <CountDueBadge b={b} period="monthly" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
       {open ? (
         <div className="card mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -81,8 +107,16 @@ export function Counts() {
             </p>
             <div className="flex flex-wrap items-end gap-2">
               <label className="block">
+                <span className="label">{t('Kind of count')}</span>
+                <select className="input" value={period} onChange={(e) => setPeriod(e.target.value as CountPeriod)} aria-label={t('Kind of count')}>
+                  <option value="weekly">{PERIOD_LABEL.weekly}</option>
+                  <option value="monthly">{t('Monthly count (everything)')}</option>
+                  <option value="spot">{PERIOD_LABEL.spot}</option>
+                </select>
+              </label>
+              <label className="block">
                 <span className="label">{t('What to count')}</span>
-                <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t('What to count')}>
+                <select className="input" value={period === 'monthly' ? '' : category} disabled={period === 'monthly'} onChange={(e) => setCategory(e.target.value)} aria-label={t('What to count')}>
                   <option value="">{t('Everything')}</option>
                   {settings.categories.map((c) => (
                     <option key={c} value={c}>{t('Only')}{' '}{c}</option>
@@ -103,7 +137,7 @@ export function Counts() {
             <Link key={c.id} to={`/counts/${c.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-stone-50">
               <div>
                 <div className="font-medium">
-                  {c.category ? t('{category} only', { category: c.category }) : t('Everything')} <Badge tone={STATUS[c.status].tone}>{STATUS[c.status].label}</Badge>
+                  {PERIOD_LABEL[c.period ?? 'spot']} · {c.category ? t('{category} only', { category: c.category }) : t('Everything')} <Badge tone={STATUS[c.status].tone}>{STATUS[c.status].label}</Badge>
                 </div>
                 <div className="text-xs text-stone-500">{t('by')}{' '}{c.createdByName}, {when(c.createdAt)}</div>
               </div>
@@ -133,7 +167,7 @@ export function CountSheet() {
   if (!count) return <Empty>{t('Count not found.')}{' '}<Link to="/counts" className="underline">{t('Back to counts')}</Link></Empty>
   const staff = canAtBranch(me, count.branchId, 'staff')
   const manager = canAtBranch(me, count.branchId, 'manager')
-  const title = count.category ? t('Count · {category} only', { category: count.category }) : t('Count · everything')
+  const title = `${PERIOD_LABEL[count.period ?? 'spot']} · ${count.category ? t('{category} only', { category: count.category }) : t('Everything')}`
   const sub = t('Started by {createdByName}, {when}', { createdByName: count.createdByName, when: when(count.createdAt) })
   return (
     <>

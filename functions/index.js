@@ -14,6 +14,7 @@ import { stockApi } from './stock-api.js'
 import { purchasingApi } from './purchasing-api.js'
 import { salesApi } from './sales-api.js'
 import { countsApi } from './counts-api.js'
+import { requestsApi } from './requests-api.js'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 3 })
@@ -125,3 +126,6 @@ export const { invRecordSales, invVoidSale } = salesApi(db)
 
 // ---- Phase 5: stock counts (counts-api.js). Expiry and alerts are worked out on screen from stock and batches.
 export const { invStartCount, invSaveCount, invApproveCount, invCancelCount } = countsApi(db)
+
+// ---- Phase 7a: main warehouse and daily orders from branches (requests-api.js)
+export const { invCreateRequest, invSendRequest, invRequestAction } = requestsApi(db)

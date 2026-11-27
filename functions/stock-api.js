@@ -14,6 +14,7 @@ const C = {
   movements: 'inv_movements',
   batches: 'inv_batches',
   transfers: 'inv_transfers',
+  requests: 'inv_requests',
 }
 const stockId = (branchId, itemId) => `${branchId}_${itemId}`
 
@@ -115,11 +116,48 @@ export function ledger(db) {
 
   const cleanNote = (n) => (typeof n === 'string' ? n.trim().slice(0, 300) : '')
 
-  return { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote }
+  /**
+   * Inside a transaction: take stock out of the sender and write the transfer document.
+   * Used by "Send stock" and by a daily order sent from the main warehouse (requests-api.js).
+   * Call it after your own reads: it reads items and stock, then writes.
+   */
+  async function sendTransferTx(tx, { me, fromBranchId, from, toBranchId, to, lines, note, extra = {} }) {
+    const ref = db.collection(C.transfers).doc()
+    const ids = lines.map((l) => l.itemId)
+    const items = await readItems(tx, ids)
+    const stock = await readStock(tx, fromBranchId, ids)
+    const planned = plan(lines, 'transfer_out', stock, items)
+    write(tx, { branchId: fromBranchId, type: 'transfer_out', planned, items, stock, me, note, refType: 'transfer', refId: ref.id })
+    tx.set(ref, {
+      fromBranchId,
+      fromName: from.name,
+      toBranchId,
+      toName: to.name,
+      status: 'sent',
+      lines: planned.map((p) => ({
+        itemId: p.itemId,
+        itemName: items[p.itemId].name,
+        baseUnit: items[p.itemId].baseUnit,
+        qty: p.qty,
+        unitCostUsd: stock[p.itemId]?.avgCostUsd ?? 0,
+        receivedQty: null,
+      })),
+      note: note || null,
+      sentBy: me.uid,
+      sentByName: me.name,
+      sentAt: FieldValue.serverTimestamp(),
+      // both branch ids in one list, so "transfers touching my branch" is one query
+      branchIds: [fromBranchId, toBranchId],
+      ...extra,
+    })
+    return ref.id
+  }
+
+  return { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote, sendTransferTx }
 }
 
 export function stockApi(db) {
-  const { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote } = ledger(db)
+  const { profileOf, need, activeBranch, readItems, readStock, plan, write, cleanNote, sendTransferTx } = ledger(db)
 
   /** Receive, waste or adjust at one branch. */
   const invRecordMovement = onCall(async (req) => {
@@ -161,39 +199,13 @@ export function stockApi(db) {
     need(me, fromBranchId, 'staff')
     const checked = checkLines('transfer_out', req.data.lines)
     if (checked.error) throw new HttpsError('invalid-argument', checked.error)
-    const ids = checked.lines.map((l) => l.itemId)
     const note = cleanNote(req.data.note)
-    const ref = db.collection(C.transfers).doc()
 
     return db.runTransaction(async (tx) => {
       const from = await activeBranch(tx, fromBranchId)
       const to = await activeBranch(tx, toBranchId)
-      const items = await readItems(tx, ids)
-      const stock = await readStock(tx, fromBranchId, ids)
-      const planned = plan(checked.lines, 'transfer_out', stock, items)
-      write(tx, { branchId: fromBranchId, type: 'transfer_out', planned, items, stock, me, note, refType: 'transfer', refId: ref.id })
-      tx.set(ref, {
-        fromBranchId,
-        fromName: from.name,
-        toBranchId,
-        toName: to.name,
-        status: 'sent',
-        lines: planned.map((p) => ({
-          itemId: p.itemId,
-          itemName: items[p.itemId].name,
-          baseUnit: items[p.itemId].baseUnit,
-          qty: p.qty,
-          unitCostUsd: stock[p.itemId]?.avgCostUsd ?? 0,
-          receivedQty: null,
-        })),
-        note: note || null,
-        sentBy: me.uid,
-        sentByName: me.name,
-        sentAt: FieldValue.serverTimestamp(),
-        // both branch ids in one list, so "transfers touching my branch" is one query
-        branchIds: [fromBranchId, toBranchId],
-      })
-      return { ok: true, id: ref.id }
+      const id = await sendTransferTx(tx, { me, fromBranchId, from, toBranchId, to, lines: checked.lines, note })
+      return { ok: true, id }
     })
   })
 
@@ -231,6 +243,16 @@ export function stockApi(db) {
         write(tx, { branchId: t.toBranchId, type: 'transfer_in', planned, items, stock, me, note: `From ${t.fromName}`, refType: 'transfer', refId: transferId })
       }
       const short = lines.some((l) => l.receivedQty < l.qty)
+      if (t.requestId) {
+        // a daily order from the main warehouse: the branch has it now
+        tx.update(db.collection(C.requests).doc(t.requestId), {
+          status: 'received',
+          short,
+          receivedByName: me.name,
+          receivedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+      }
       tx.update(ref, {
         lines,
         status: 'received',
@@ -256,6 +278,8 @@ export function stockApi(db) {
       const ids = t.lines.map((l) => l.itemId)
       const items = await readItems(tx, ids)
       const stock = await readStock(tx, t.fromBranchId, ids)
+      const reqRef = t.requestId ? db.collection(C.requests).doc(t.requestId) : null
+      const reqSnap = reqRef ? await tx.get(reqRef) : null
       const planned = plan(
         t.lines.map((l) => ({ itemId: l.itemId, qty: l.qty, unitCostUsd: l.unitCostUsd })),
         'transfer_in',
@@ -263,6 +287,16 @@ export function stockApi(db) {
         items,
       )
       write(tx, { branchId: t.fromBranchId, type: 'transfer_in', planned, items, stock, me, note: 'Transfer cancelled, stock returned', refType: 'transfer', refId: ref.id })
+      if (reqSnap?.exists) {
+        // the daily order goes back to the warehouse's waiting list, as it was asked
+        tx.update(reqRef, {
+          status: 'requested',
+          transferId: null,
+          lines: reqSnap.data().lines.map((l) => ({ ...l, sentQty: null })),
+          sentByName: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+      }
       tx.update(ref, { status: 'cancelled', cancelledBy: me.uid, cancelledByName: me.name, cancelledAt: FieldValue.serverTimestamp() })
       return { ok: true }
     })

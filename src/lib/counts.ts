@@ -54,3 +54,22 @@ export function previewTotals(lines: CountLine[]) {
   const r2 = (v: number) => Math.round(v * 100) / 100
   return { counted, differences, lossUsd: r2(lossUsd), gainUsd: r2(gainUsd), netUsd: r2(gainUsd - lossUsd) }
 }
+
+// ---- Phase 7a: weekly and monthly counts
+
+export type DueState = 'ok' | 'due' | 'overdue' | 'never'
+
+const DAY = 86400000
+
+/**
+ * Is a weekly or monthly count due?
+ * Weekly: ok for 7 days after the last one, then due; overdue after 14 days.
+ * Monthly: ok if done this calendar month; due if the last one was last month; overdue if older.
+ */
+export function countDue(period: 'weekly' | 'monthly', last: Date | null | undefined, now = new Date()): { state: DueState; days: number | null } {
+  if (!last) return { state: 'never', days: null }
+  const days = Math.floor((now.getTime() - last.getTime()) / DAY)
+  if (period === 'weekly') return { state: days < 7 ? 'ok' : days < 14 ? 'due' : 'overdue', days }
+  const months = (now.getFullYear() - last.getFullYear()) * 12 + (now.getMonth() - last.getMonth())
+  return { state: months <= 0 ? 'ok' : months === 1 ? 'due' : 'overdue', days }
+}

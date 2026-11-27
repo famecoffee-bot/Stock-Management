@@ -6,7 +6,9 @@ import { useCollection, useSettings } from '../lib/data'
 import { useProfile } from '../lib/auth'
 import { useBranch } from '../lib/branch'
 import { canAtBranch, isAdmin } from '../lib/permissions'
-import type { Item, StockLevel, Transfer } from '../lib/types'
+import { isWarehouse, type Item, type StockLevel, type Transfer } from '../lib/types'
+import { countDue } from '../lib/counts'
+import { useRequests } from './Requests'
 import { formatKhr, formatQty, formatUsd } from '../lib/units'
 import { Badge, PageHeader } from '../components/ui'
 import { stockRows } from './Stock'
@@ -27,6 +29,8 @@ export function Dashboard() {
   const openOrders = useOpenOrders(current?.id)
   const expiry = useExpiry(current?.id)
   const counts = useCounts(current?.id, 10)
+  const requests = useRequests(current, 30)
+  const warehouse = isWarehouse(current)
   const rows = useMemo(() => stockRows(items.rows, levels.rows), [items.rows, levels.rows])
   const low = rows.filter((r) => r.status !== 'ok')
   const value = rows.reduce((s, r) => s + r.valueUsd, 0)
@@ -37,10 +41,17 @@ export function Dashboard() {
   const useSoon = expiry.rows.filter((r) => r.level !== 'ok')
   const negative = rows.filter((r) => r.qty < 0)
   const waiting = counts.rows.filter((c) => c.status === 'submitted')
-  const lastCount = counts.rows.find((c) => c.status === 'approved')
-  const daysSinceCount = lastCount?.approvedAt ? Math.floor((Date.now() - lastCount.approvedAt.toDate().getTime()) / 86400000) : null
-  const countDue = levels.rows.length > 0 && (daysSinceCount === null || daysSinceCount > 30)
-  const attention = useSoon.length + negative.length + (isManager ? waiting.length : 0) + (countDue ? 1 : 0)
+  // Weekly and monthly counts, for branches and the main warehouse alike.
+  const weekly = countDue('weekly', current?.lastCounts?.weekly?.toDate())
+  const monthly = countDue('monthly', current?.lastCounts?.monthly?.toDate())
+  const hasStock = levels.rows.length > 0
+  const weeklyDue = hasStock && weekly.state !== 'ok'
+  const monthlyDue = hasStock && monthly.state !== 'ok'
+  // Daily orders: the warehouse sees orders to send; a branch sees what is on the way.
+  const ordersWaiting = requests.rows.filter((r) => r.status === 'requested')
+  const ordersOnTheWay = requests.rows.filter((r) => r.status === 'sent')
+  const attention =
+    useSoon.length + negative.length + (isManager ? waiting.length : 0) + (weeklyDue ? 1 : 0) + (monthlyDue ? 1 : 0) + (warehouse && canWork ? ordersWaiting.length : 0)
 
   const steps = [
     { done: branches.length > 0, text: t('Add your branches'), to: '/branches' },
@@ -57,7 +68,11 @@ export function Dashboard() {
           <Stat label={t('Stock value')} value={formatUsd(value)} note={formatKhr(value, settings.usdToKhr)} />
           <Stat label={t('Low or out')} value={low.length} note={low.length ? t('Needs ordering') : t('All good')} />
           <Stat label={t('Use soon')} value={useSoon.length} note={useSoon.length ? t('Expired or expiring in 3 days') : t('Nothing expiring')} />
-          <Stat label={t('Transfers to confirm')} value={incoming.rows.length} />
+          {warehouse ? (
+            <Stat label={t('Daily orders to send')} value={ordersWaiting.length} note={ordersWaiting.length ? t('Branches are waiting') : t('All sent')} />
+          ) : (
+            <Stat label={t('Transfers to confirm')} value={incoming.rows.length} note={ordersOnTheWay.length ? t('{n} daily orders on the way', { n: ordersOnTheWay.length }) : undefined} />
+          )}
           <Stat label={t('Orders on the way')} value={openOrders.rows.length} note={t('Receive them on the Receive page')} />
         </div>
       )}
@@ -67,6 +82,7 @@ export function Dashboard() {
           <Link to="/sales" className="btn-ghost">{t('Enter sales')}</Link>
           <Link to="/stock/waste" className="btn-ghost">{t('Record waste')}</Link>
           <Link to="/counts" className="btn-ghost">{t('Count stock')}</Link>
+          <Link to={warehouse ? '/requests' : '/requests/new'} className="btn-ghost">{warehouse ? t('Daily orders') : t('Order from warehouse')}</Link>
           <Link to="/transfers" className="btn-ghost">{t('Transfers')}</Link>
           <Link to="/purchase-orders" className="btn-ghost">{t('Purchase orders')}</Link>
         </div>
@@ -75,6 +91,14 @@ export function Dashboard() {
         <div className="card mb-5">
           <h2 className="mb-2 font-semibold text-bean-900">{t('Needs attention')}</h2>
           <ul className="divide-y divide-stone-100 text-sm">
+            {warehouse &&
+              canWork &&
+              ordersWaiting.slice(0, 6).map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-2">
+                  <span>{t('Daily order {number} from {name} is waiting', { number: r.number, name: r.branchName })}</span>
+                  <Link to="/requests" className="shrink-0 text-bean-700 hover:underline">{t('Check and send')}</Link>
+                </li>
+              ))}
             {isManager &&
               waiting.map((c) => (
                 <li key={c.id} className="flex items-center justify-between py-2">
@@ -103,9 +127,15 @@ export function Dashboard() {
                 <Link to="/counts" className="shrink-0 text-bean-700 hover:underline">{t('Count them')}</Link>
               </li>
             )}
-            {countDue && (
+            {weeklyDue && (
               <li className="flex items-center justify-between py-2">
-                <span>{daysSinceCount === null ? t('No stock count yet at this branch.') : t('Last stock count was {daysSinceCount} days ago.', { daysSinceCount })}{' '}{t('Count at least once a month.')}</span>
+                <span>{weekly.state === 'never' ? t('No weekly count yet here.') : t('Weekly count is due: the last one was {days} days ago.', { days: weekly.days })}</span>
+                <Link to="/counts" className="shrink-0 text-bean-700 hover:underline">{t('Start a count')}</Link>
+              </li>
+            )}
+            {monthlyDue && (
+              <li className="flex items-center justify-between py-2">
+                <span>{monthly.state === 'never' ? t('No monthly count yet here.') : t('Monthly count is due for this month.')}</span>
                 <Link to="/counts" className="shrink-0 text-bean-700 hover:underline">{t('Start a count')}</Link>
               </li>
             )}

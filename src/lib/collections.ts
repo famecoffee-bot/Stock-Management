@@ -14,6 +14,7 @@ export const COL = {
   recipes: 'inv_recipes',
   sales: 'inv_sales',
   counts: 'inv_counts',
+  requests: 'inv_requests',
   alerts: 'inv_alerts',
   settings: 'inv_settings',
 } as const

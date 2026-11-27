@@ -4,16 +4,29 @@ import { COL } from '../lib/collections'
 import { saveDoc, useCollection } from '../lib/data'
 import { useProfile } from '../lib/auth'
 import { isAdmin, visibleBranchIds } from '../lib/permissions'
-import type { Branch } from '../lib/types'
+import { isWarehouse, type Branch } from '../lib/types'
+import { countDue } from '../lib/counts'
 import { Badge, Empty, ErrorNote, Field, Modal, PageHeader, friendlyError } from '../components/ui'
-import { t } from '../lib/i18n'
+import { dateLocale, t } from '../lib/i18n'
+
+const DUE_TONE = { ok: 'green', due: 'amber', overdue: 'red', never: 'stone' } as const
+
+/** "Weekly count: 3 days ago" with a colour for ok / due / overdue. */
+export function CountDueBadge({ b, period }: { b: Branch; period: 'weekly' | 'monthly' }) {
+  const last = b.lastCounts?.[period]?.toDate()
+  const d = countDue(period, last)
+  const label = period === 'weekly' ? t('Weekly') : t('Monthly')
+  const text = d.state === 'never' ? t('never') : d.state === 'ok' ? last!.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) : d.state === 'due' ? t('due') : t('overdue')
+  return <Badge tone={DUE_TONE[d.state]}>{label}: {text}</Badge>
+}
 
 export function Branches() {
   const me = useProfile()
   const { rows, loading, error } = useCollection<Branch>(COL.branches, [orderBy('code')])
   const [editing, setEditing] = useState<Partial<Branch> | null>(null)
   const visible = new Set(visibleBranchIds(me, rows.map((b) => b.id)))
-  const list = rows.filter((b) => visible.has(b.id))
+  const list = rows.filter((b) => visible.has(b.id)).sort((a, b) => Number(isWarehouse(b)) - Number(isWarehouse(a)))
+  const byId = new Map(rows.map((b) => [b.id, b]))
 
   return (
     <>
@@ -34,9 +47,19 @@ export function Branches() {
                   <div className="text-xs font-semibold text-bean-500">{b.code}</div>
                   <div className="font-medium">{b.name}</div>
                   {b.address && <div className="text-sm text-stone-500">{b.address}</div>}
+                  {!isWarehouse(b) && b.supplyFromId && byId.get(b.supplyFromId) && (
+                    <div className="mt-1 text-xs text-stone-500">{t('Orders from: {name}', { name: byId.get(b.supplyFromId)!.name })}</div>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <CountDueBadge b={b} period="weekly" />
+                    <CountDueBadge b={b} period="monthly" />
+                  </div>
                   {b.groveBranch && <div className="mt-1 text-xs text-stone-400">{t('POS name:')}{' '}{b.groveBranch}</div>}
                 </div>
-                {!b.active && <Badge tone="red">{t('Closed')}</Badge>}
+                <div className="flex flex-col items-end gap-1">
+                  {isWarehouse(b) && <Badge tone="amber">{t('Main warehouse')}</Badge>}
+                  {!b.active && <Badge tone="red">{t('Closed')}</Badge>}
+                </div>
               </div>
               {isAdmin(me) && (
                 <button className="btn-ghost mt-3 w-full" onClick={() => setEditing(b)}>
@@ -57,6 +80,7 @@ function BranchForm({ initial, onClose, existing }: { initial: Partial<Branch>; 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const set = (k: keyof Branch, v: unknown) => setB((x) => ({ ...x, [k]: v }))
+  const warehouses = existing.filter((x) => isWarehouse(x) && x.active && x.id !== b.id)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -72,6 +96,8 @@ function BranchForm({ initial, onClose, existing }: { initial: Partial<Branch>; 
         code,
         address: (b.address ?? '').trim(),
         groveBranch: (b.groveBranch ?? '').trim(),
+        kind: b.kind ?? 'branch',
+        supplyFromId: b.kind === 'warehouse' ? '' : (b.supplyFromId ?? ''),
         active: b.active ?? true,
       })
       onClose()
@@ -95,6 +121,22 @@ function BranchForm({ initial, onClose, existing }: { initial: Partial<Branch>; 
             </Field>
           </div>
         </div>
+        <Field label={t('Type')} hint={t('The main warehouse (big stock) keeps stock for all branches. Branches send it a daily order.')}>
+          <select className="input" value={b.kind ?? 'branch'} onChange={(e) => set('kind', e.target.value)}>
+            <option value="branch">{t('Branch (shop)')}</option>
+            <option value="warehouse">{t('Main warehouse')}</option>
+          </select>
+        </Field>
+        {(b.kind ?? 'branch') === 'branch' && warehouses.length > 0 && (
+          <Field label={t('Daily orders go to')}>
+            <select className="input" value={b.supplyFromId ?? ''} onChange={(e) => set('supplyFromId', e.target.value)}>
+              <option value="">{t('Choose…')}</option>
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>{w.code} · {w.name}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label={t('Address')}>
           <input className="input" value={b.address ?? ''} onChange={(e) => set('address', e.target.value)} />
         </Field>

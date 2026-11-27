@@ -19,6 +19,7 @@ import { Sales } from './pages/Sales'
 import { CountSheet, Counts } from './pages/Counts'
 import { Expiry } from './pages/Expiry'
 import { Reports } from './pages/Reports'
+import { NewRequest, Requests } from './pages/Requests'
 import { PurchaseOrderEdit, PurchaseOrderView, PurchaseOrders } from './pages/PurchaseOrders'
 import { LanguageProvider, t } from './lib/i18n'
 
@@ -45,6 +46,8 @@ function Gate() {
         <Route path="stock/waste" element={<StockChange key="waste" type="waste" />} />
         <Route path="stock/adjust" element={<StockChange key="adjust" type="adjust" />} />
         <Route path="transfers" element={<Transfers />} />
+        <Route path="requests" element={<Requests />} />
+        <Route path="requests/new" element={<NewRequest />} />
         <Route path="history" element={<History />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="menu" element={<Products />} />
